@@ -100,7 +100,7 @@ impl Game {
         let queue = VecDeque::new();
         match mode {
             Mode::Normal => {
-                let grid = Grid::new(48, 32);
+                let grid = Grid::new(24, 24);
                 let snake = Snake::new(grid.random_cell());
                 let apple = grid.random_cell();
                 Self {
@@ -304,7 +304,7 @@ fn clear_canvas(canvas: &mut Canvas<Window>) {
 
 fn main() {
     const TARGET_FPS: u8 = 60;
-    const GRID_SCALE: u8 = 32;
+    const GRID_SCALE: u8 = 16;
     const SIM_FRAME: u8 = 10;
 
     let sdl_context = sdl3::init().unwrap();
