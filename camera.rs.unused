@@ -1,0 +1,11 @@
+struct Camera {
+    position: Vec2<i32>,
+    size: Vec2<u32>,
+}
+
+impl Camera {
+    fn resize(&mut self, width: u32, height: u32) {
+        self.size.set(width, height);
+    }
+}
+
