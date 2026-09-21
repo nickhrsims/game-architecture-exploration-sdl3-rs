@@ -148,20 +148,29 @@ impl Game {
     fn north(&mut self) {
         let len = self.queue.len();
         if len <= 3 {
-            match self.queue.front() {
-                None | Some(&Direction::West) | Some(&Direction::East) => {
+            let direction = match self.queue.front() {
+                Some(direction) => *direction,
+                None => self.direction,
+            };
+
+            match direction {
+                Direction::West | Direction::East => {
                     self.queue.push_front(Direction::North);
                 }
                 _ => {}
             }
         }
     }
-
     fn south(&mut self) {
         let len = self.queue.len();
         if len <= 3 {
-            match self.queue.front() {
-                None | Some(&Direction::West) | Some(&Direction::East) => {
+            let direction = match self.queue.front() {
+                Some(direction) => *direction,
+                None => self.direction,
+            };
+
+            match direction {
+                Direction::West | Direction::East => {
                     self.queue.push_front(Direction::South);
                 }
                 _ => {}
@@ -172,8 +181,13 @@ impl Game {
     fn west(&mut self) {
         let len = self.queue.len();
         if len <= 3 {
-            match self.queue.front() {
-                None | Some(&Direction::North) | Some(&Direction::South) => {
+            let direction = match self.queue.front() {
+                Some(direction) => *direction,
+                None => self.direction,
+            };
+
+            match direction {
+                Direction::North | Direction::South => {
                     self.queue.push_front(Direction::West);
                 }
                 _ => {}
@@ -184,8 +198,13 @@ impl Game {
     fn east(&mut self) {
         let len = self.queue.len();
         if len <= 3 {
-            match self.queue.front() {
-                None | Some(&Direction::North) | Some(&Direction::South) => {
+            let direction = match self.queue.front() {
+                Some(direction) => *direction,
+                None => self.direction,
+            };
+
+            match direction {
+                Direction::North | Direction::South => {
                     self.queue.push_front(Direction::East);
                 }
                 _ => {}
@@ -309,7 +328,7 @@ fn main() {
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
-        .window("Snake", GRID_SCALE as u32 * 48, GRID_SCALE as u32 * 32)
+        .window("Snake", GRID_SCALE as u32 * 24, GRID_SCALE as u32 * 24)
         .resizable()
         .position_centered()
         .build()
