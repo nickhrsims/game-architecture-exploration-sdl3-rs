@@ -76,7 +76,7 @@ impl Snake {
 
 #[derive(PartialEq)]
 enum GameState {
-    Active,
+    Playing,
     GameOver,
 }
 
@@ -95,7 +95,7 @@ enum Mode {
 
 impl Game {
     fn new(mode: Mode) -> Self {
-        let state = GameState::Active;
+        let state = GameState::Playing;
         let direction = Direction::South;
         let queue = VecDeque::new();
         match mode {
@@ -126,7 +126,7 @@ impl Game {
         match state {
             // Stepping GameOver is a no-op.
             GameState::GameOver => {}
-            GameState::Active => {
+            GameState::Playing => {
                 let next_head = snake.next_head(*direction);
                 if grid.contains(next_head) {
                     if next_head == *apple {
@@ -328,7 +328,7 @@ fn main() {
 
     let mut game = Game::new(Mode::Normal);
 
-    while game.state == GameState::Active {
+    while game.state == GameState::Playing {
         ns_counter.start();
 
         for event in event_pump.poll_iter() {
