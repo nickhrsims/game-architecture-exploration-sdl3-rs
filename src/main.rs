@@ -86,6 +86,7 @@ struct Game {
     snake: Snake,
     apple: Cell,
     direction: Direction,
+    queue: VecDeque<Direction>,
 }
 
 enum Mode {
@@ -96,6 +97,7 @@ impl Game {
     fn new(mode: Mode) -> Self {
         let state = GameState::Active;
         let direction = Direction::South;
+        let queue = VecDeque::new();
         match mode {
             Mode::Normal => {
                 let grid = Grid::new(48, 32);
@@ -107,6 +109,7 @@ impl Game {
                     snake,
                     apple,
                     direction,
+                    queue,
                 }
             }
         }
@@ -117,41 +120,77 @@ impl Game {
         let grid = &self.grid;
         let snake = &mut self.snake;
         let apple = &mut self.apple;
-        let direction = self.direction;
+        let direction = &mut self.direction;
+        let queue = &mut self.queue;
 
         match state {
             // Stepping GameOver is a no-op.
             GameState::GameOver => {}
             GameState::Active => {
-                let next_head = snake.next_head(direction);
+                let next_head = snake.next_head(*direction);
                 if grid.contains(next_head) {
                     if next_head == *apple {
                         *apple = grid.random_cell();
-                        snake.grow(direction)
+                        snake.grow(*direction);
                     } else {
-                        snake.step(direction)
+                        snake.step(*direction);
                     }
                 } else {
-                    *state = GameState::GameOver
+                    *state = GameState::GameOver;
+                }
+                if let Some(new_direction) = queue.pop_back() {
+                    *direction = new_direction;
                 }
             }
         }
     }
 
     fn north(&mut self) {
-        self.direction = Direction::North;
+        let len = self.queue.len();
+        if len <= 3 {
+            match self.queue.front() {
+                None | Some(&Direction::West) | Some(&Direction::East) => {
+                    self.queue.push_front(Direction::North);
+                }
+                _ => {}
+            }
+        }
     }
 
     fn south(&mut self) {
-        self.direction = Direction::South;
+        let len = self.queue.len();
+        if len <= 3 {
+            match self.queue.front() {
+                None | Some(&Direction::West) | Some(&Direction::East) => {
+                    self.queue.push_front(Direction::South);
+                }
+                _ => {}
+            }
+        }
     }
 
     fn west(&mut self) {
-        self.direction = Direction::West;
+        let len = self.queue.len();
+        if len <= 3 {
+            match self.queue.front() {
+                None | Some(&Direction::North) | Some(&Direction::South) => {
+                    self.queue.push_front(Direction::West);
+                }
+                _ => {}
+            }
+        }
     }
 
     fn east(&mut self) {
-        self.direction = Direction::East;
+        let len = self.queue.len();
+        if len <= 3 {
+            match self.queue.front() {
+                None | Some(&Direction::North) | Some(&Direction::South) => {
+                    self.queue.push_front(Direction::East);
+                }
+                _ => {}
+            }
+        }
     }
 }
 
@@ -262,8 +301,6 @@ fn clear_canvas(canvas: &mut Canvas<Window>) {
 
 // TODO: Check head + body overlap
 // TODO: Prevent apple spawn within snake
-// TODO: Prevent reversing snake
-// TODO: Alternating input queue system
 
 fn main() {
     const TARGET_FPS: u8 = 60;
