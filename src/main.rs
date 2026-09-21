@@ -101,8 +101,8 @@ impl Game {
         match mode {
             Mode::Normal => {
                 let grid = Grid::new(24, 24);
-                let snake = Snake::new(grid.random_cell());
-                let apple = grid.random_cell();
+                let snake = Snake::new(Cell::new(4, 4));
+                let apple = Cell::new(18, 18);
                 Self {
                     state,
                     grid,
