@@ -303,9 +303,8 @@ fn clear_canvas(canvas: &mut Canvas<Window>) {
 // TODO: Prevent apple spawn within snake
 
 fn main() {
-    const TARGET_FPS: u8 = 60;
+    const TARGET_FPS: u8 = 10;
     const GRID_SCALE: u8 = 16;
-    const SIM_FRAME: u8 = 10;
 
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -323,7 +322,6 @@ fn main() {
 
     let ns_frame_cap = 1_000_000_000u32 / TARGET_FPS as u32;
     let mut ns_counter = HighResolutionCounter::new();
-    let mut frame_counter: u8 = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut game = Game::new(Mode::Normal);
@@ -362,15 +360,7 @@ fn main() {
             }
         }
 
-        frame_counter += 1;
-        let apple = &game.apple;
-        let head = &game.snake.head();
-        eprintln!("{frame_counter} {head:?} {apple:?}");
-
-        if frame_counter == SIM_FRAME {
-            frame_counter = 0;
-            game.step();
-        }
+        game.step();
 
         let snapshot = game.snapshot();
         clear_canvas(&mut canvas);
