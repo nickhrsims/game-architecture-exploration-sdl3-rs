@@ -37,40 +37,44 @@ impl From<Direction> for Offset {
 }
 
 struct Snake {
-    vec: VecDeque<Cell>,
+    head: Cell,
+    body: Vec<Cell>,
+    tail: usize,
 }
 
 impl Snake {
-    fn new(start: Cell) -> Self {
-        let mut vec = VecDeque::new();
-        vec.push_front(start);
-        Self { vec }
-    }
-
-    fn head(&self) -> Cell {
-        *self
-            .vec
-            .front()
-            .expect("Snake body should always contain at least one cell")
-    }
-
-    fn body(&self) -> &[Cell] {
-        let (cells, ..) = self.vec.as_slices();
-        &cells[1..cells.len()]
-    }
-
-    fn next_head(&self, direction: Direction) -> Cell {
-        self.head() + Offset::from(direction)
-    }
-
-    fn grow(&mut self, direction: Direction) {
-        self.vec.push_front(self.next_head(direction));
-        self.vec.make_contiguous();
+    fn new(head: Cell) -> Self {
+        let body = Vec::new();
+        Self {
+            head,
+            body,
+            tail: 0,
+        }
     }
 
     fn step(&mut self, direction: Direction) {
-        self.grow(direction);
-        self.vec.pop_back();
+        if !self.body.is_empty() {
+            self.body[self.tail] = self.head;
+            self.tail += 1;
+        }
+
+        self.head += Offset::from(direction);
+
+        if self.tail == self.body.len() {
+            self.tail = 0;
+        }
+    }
+
+    fn grow(&mut self, direction: Direction) {
+        self.body.insert(
+            self.tail,
+            if self.body.is_empty() {
+                self.head
+            } else {
+                self.body[self.tail]
+            },
+        );
+        self.step(direction);
     }
 }
 
@@ -96,13 +100,16 @@ enum Mode {
 impl Game {
     fn new(mode: Mode) -> Self {
         let state = GameState::Playing;
-        let direction = Direction::South;
+        let direction = Direction::East;
         let queue = VecDeque::new();
         match mode {
             Mode::Normal => {
                 let grid = Grid::new(24, 24);
-                let snake = Snake::new(Cell::new(4, 4));
                 let apple = Cell::new(18, 18);
+                let mut snake = Snake::new(Cell::new(4, 4));
+                snake.grow(Direction::East);
+                snake.grow(Direction::East);
+                snake.grow(Direction::East);
                 Self {
                     state,
                     grid,
@@ -127,13 +134,21 @@ impl Game {
             // Stepping GameOver is a no-op.
             GameState::GameOver => {}
             GameState::Playing => {
-                let next_head = snake.next_head(*direction);
+                let next_head = snake.head + Offset::from(*direction);
                 if grid.contains(next_head) {
                     if next_head == *apple {
-                        *apple = grid.random_cell();
+                        loop {
+                            *apple = grid.random_cell();
+                            if *apple != snake.head && !snake.body.contains(apple) {
+                                break;
+                            }
+                        }
                         snake.grow(*direction);
                     } else {
                         snake.step(*direction);
+                    }
+                    if snake.body.contains(&snake.head) {
+                        *state = GameState::GameOver;
                     }
                 } else {
                     *state = GameState::GameOver;
@@ -230,8 +245,8 @@ trait Observable {
 impl Observable for Game {
     fn snapshot(&self) -> Snapshot<'_> {
         let apple = self.apple;
-        let head = self.snake.head();
-        let body = self.snake.body();
+        let head = self.snake.head;
+        let body = self.snake.body.as_slice();
         Snapshot { apple, head, body }
     }
 }
@@ -266,6 +281,7 @@ trait RenderSnapshot {
     fn draw_body(&mut self, scale: u8, body: &[Cell]);
     fn draw_head(&mut self, scale: u8, head: Cell);
     fn draw_apple(&mut self, scale: u8, apple: Cell);
+    fn draw_grid(&mut self, scale: u8, grid: &Grid);
 }
 
 impl RenderSnapshot for Canvas<Window> {
@@ -281,7 +297,7 @@ impl RenderSnapshot for Canvas<Window> {
                 )
             })
             .collect();
-        self.set_draw_color(Color::WHITE);
+        self.set_draw_color(Color::RGB(80, 80, 80));
         self.fill_rects(&rects).expect("Rendering does not fail");
     }
 
@@ -293,7 +309,7 @@ impl RenderSnapshot for Canvas<Window> {
             scale as f32,
         );
 
-        self.set_draw_color(Color::WHITE);
+        self.set_draw_color(Color::RGB(80, 80, 80));
         self.fill_rect(rect).expect("Rendering does not fail");
     }
 
@@ -304,26 +320,29 @@ impl RenderSnapshot for Canvas<Window> {
             scale as f32,
             scale as f32,
         );
-        self.set_draw_color(Color::RED);
+        self.set_draw_color(Color::RGB(180, 80, 80));
         self.fill_rect(rect).expect("Rendering does not fail");
     }
-}
 
-fn clear_canvas(canvas: &mut Canvas<Window>) {
-    canvas.set_draw_color(Color::BLACK);
-    canvas.clear();
+    fn draw_grid(&mut self, scale: u8, grid: &Grid) {
+        self.set_draw_color(Color::RGB(120, 120, 120));
+        self.fill_rect(FRect::new(
+            0f32,
+            0f32,
+            grid.width as f32 * scale as f32,
+            grid.height as f32 * scale as f32,
+        ))
+        .unwrap();
+    }
 }
 
 // -------------------------------------------------------------
 // Main
 // -------------------------------------------------------------
 
-// TODO: Check head + body overlap
-// TODO: Prevent apple spawn within snake
-
 fn main() {
     const TARGET_FPS: u8 = 10;
-    const GRID_SCALE: u8 = 16;
+    const GRID_SCALE: u8 = 32;
 
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -382,7 +401,7 @@ fn main() {
         game.step();
 
         let snapshot = game.snapshot();
-        clear_canvas(&mut canvas);
+        canvas.draw_grid(GRID_SCALE, &game.grid);
         canvas.draw_head(GRID_SCALE, snapshot.head);
         canvas.draw_body(GRID_SCALE, snapshot.body);
         canvas.draw_apple(GRID_SCALE, snapshot.apple);

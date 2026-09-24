@@ -31,8 +31,8 @@ pub struct Offset(i32, i32);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Grid {
-    width: u16,
-    height: u16,
+    pub width: u16,
+    pub height: u16,
 }
 
 impl Offset {
@@ -84,6 +84,18 @@ impl std::ops::Add<Offset> for Cell {
         let r1 = lhs1.checked_add(rhs1).expect("lhs + rhs within bounds");
 
         Cell(r0, r1)
+    }
+}
+
+impl std::ops::AddAssign<Offset> for Cell {
+    fn add_assign(&mut self, rhs: Offset) {
+        let lhs0 = self.0;
+        let lhs1 = self.1;
+        let rhs0 = rhs.0;
+        let rhs1 = rhs.1;
+
+        self.0 = lhs0.checked_add(rhs0).expect("lhs + rhs within bounds");
+        self.1 = lhs1.checked_add(rhs1).expect("lhs + rhs within bounds");
     }
 }
 
