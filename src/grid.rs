@@ -58,9 +58,9 @@ impl Grid {
     }
     pub fn contains(&self, cell: Cell) -> bool {
         let before = cell.0 < 0;
-        let after = cell.0 > self.width as i32;
+        let after = cell.0 >= self.width as i32;
         let above = cell.1 < 0;
-        let below = cell.1 > self.height as i32;
+        let below = cell.1 >= self.height as i32;
         !(before || after || above || below)
     }
     pub fn random_cell(&self) -> Cell {
