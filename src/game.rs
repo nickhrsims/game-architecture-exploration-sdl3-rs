@@ -26,11 +26,6 @@ pub enum GameState {
     GameOver,
 }
 
-#[derive(PartialEq, Copy, Clone)]
-pub enum Mode {
-    Normal,
-}
-
 struct Snake {
     head: Cell,
     body: Vec<Cell>,
@@ -46,27 +41,27 @@ enum Direction {
 }
 
 impl Game {
-    pub fn new(mode: Mode) -> Self {
+    pub fn new(grid_width: u16, grid_height: u16) -> Self {
+        if grid_width < 16 || grid_height < 16 {
+            panic!("Grid width and height must each be at least 16");
+        }
+
         let state = GameState::Playing;
         let direction = Direction::East;
         let queue = VecDeque::new();
-        match mode {
-            Mode::Normal => {
-                let grid = Grid::new(24, 24);
-                let apple = Cell::new(18, 18);
-                let mut snake = Snake::new(Cell::new(4, 4));
-                snake.grow(Direction::East);
-                snake.grow(Direction::East);
-                snake.grow(Direction::East);
-                Self {
-                    state,
-                    grid,
-                    snake,
-                    apple,
-                    direction,
-                    queue,
-                }
-            }
+        let grid = Grid::new(grid_width, grid_height);
+        let apple = Cell::new(grid_width as i32 - 4, grid_height as i32 - 4);
+        let mut snake = Snake::new(Cell::new(4, 4));
+        snake.grow(Direction::East);
+        snake.grow(Direction::East);
+        snake.grow(Direction::East);
+        Self {
+            state,
+            grid,
+            snake,
+            apple,
+            direction,
+            queue,
         }
     }
 
