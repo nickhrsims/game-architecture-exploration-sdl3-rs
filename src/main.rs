@@ -13,11 +13,14 @@ pub mod grid;
 use game::{Game, GameState, Mode};
 use grid::{Cell, Grid};
 
-// -------------------------------------------------------------
-// SDL3 Extensions
-// -------------------------------------------------------------
-
 struct HighResolutionCounter(u64, u64);
+
+trait RenderSnapshot {
+    fn draw_body(&mut self, scale: u8, body: &[Cell]);
+    fn draw_head(&mut self, scale: u8, head: Cell);
+    fn draw_apple(&mut self, scale: u8, apple: Cell);
+    fn draw_grid(&mut self, scale: u8, grid: &Grid);
+}
 
 impl HighResolutionCounter {
     fn new() -> Self {
@@ -37,13 +40,6 @@ impl HighResolutionCounter {
             .try_into()
             .expect("High resolution counter difference nanosecond-scaled fits into u32")
     }
-}
-
-trait RenderSnapshot {
-    fn draw_body(&mut self, scale: u8, body: &[Cell]);
-    fn draw_head(&mut self, scale: u8, head: Cell);
-    fn draw_apple(&mut self, scale: u8, apple: Cell);
-    fn draw_grid(&mut self, scale: u8, grid: &Grid);
 }
 
 impl RenderSnapshot for Canvas<Window> {
@@ -97,14 +93,6 @@ impl RenderSnapshot for Canvas<Window> {
         .unwrap();
     }
 }
-
-// -------------------------------------------------------------
-// App Model
-// -------------------------------------------------------------
-
-// -------------------------------------------------------------
-// Main
-// -------------------------------------------------------------
 
 fn main() {
     const TARGET_FPS: u8 = 10;
