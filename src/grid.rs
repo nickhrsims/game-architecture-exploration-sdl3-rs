@@ -1,9 +1,30 @@
-// -------------------------------------------------------------
-// Cell
-// -------------------------------------------------------------
+#[derive(Debug, Eq, PartialEq)]
+pub struct Grid {
+    pub width: u16,
+    pub height: u16,
+}
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Cell(pub i32, pub i32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Offset(i32, i32);
+
+impl Grid {
+    pub fn new(width: u16, height: u16) -> Self {
+        Self { width, height }
+    }
+    pub fn contains(&self, cell: Cell) -> bool {
+        let before = cell.0 < 0;
+        let after = cell.0 >= self.width as i32;
+        let above = cell.1 < 0;
+        let below = cell.1 >= self.height as i32;
+        !(before || after || above || below)
+    }
+    pub fn random_cell(&self) -> Cell {
+        Cell::random(self.width as i32, self.height as i32)
+    }
+}
 
 impl Cell {
     pub fn new(x: i32, y: i32) -> Self {
@@ -22,19 +43,6 @@ impl Cell {
     }
 }
 
-// -------------------------------------------------------------
-// Offset
-// -------------------------------------------------------------
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Offset(i32, i32);
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct Grid {
-    pub width: u16,
-    pub height: u16,
-}
-
 impl Offset {
     pub const NORTH: Offset = Offset(0, -1);
     pub const SOUTH: Offset = Offset(0, 1);
@@ -47,30 +55,6 @@ impl Default for Offset {
         Offset::SOUTH
     }
 }
-
-// -------------------------------------------------------------
-// Grid
-// -------------------------------------------------------------
-
-impl Grid {
-    pub fn new(width: u16, height: u16) -> Self {
-        Self { width, height }
-    }
-    pub fn contains(&self, cell: Cell) -> bool {
-        let before = cell.0 < 0;
-        let after = cell.0 >= self.width as i32;
-        let above = cell.1 < 0;
-        let below = cell.1 >= self.height as i32;
-        !(before || after || above || below)
-    }
-    pub fn random_cell(&self) -> Cell {
-        Cell::random(self.width as i32, self.height as i32)
-    }
-}
-
-// -------------------------------------------------------------
-// Cell & Offset :: Operators
-// -------------------------------------------------------------
 
 impl std::ops::Add<Offset> for Cell {
     type Output = Cell;
@@ -114,14 +98,10 @@ impl std::ops::Sub for Cell {
     }
 }
 
-// -------------------------------------------------------------
-// Tests
-// -------------------------------------------------------------
-
 #[cfg(test)]
 mod tests {
-    use crate::Cell;
-    use crate::Grid;
+    use super::*;
+
     #[test]
     fn grid_contains() {
         let grid = Grid::new(16, 16);
@@ -129,5 +109,25 @@ mod tests {
         let outside = Cell::new(-2, 6);
         assert!(grid.contains(inside));
         assert!(!grid.contains(outside));
+    }
+
+    #[test]
+    fn add_cell_offset_normal() {
+        let cell = Cell(1, 0);
+        let offset = Offset::SOUTH;
+        let result = cell + offset;
+        eprintln!("{:?}", result);
+        assert_eq!(result, Cell(1, 1));
+    }
+
+    #[test]
+    fn sub_cell_from_cell() {
+        let cell_a = Cell(3, 4);
+        let cell_b = Cell(4, 5);
+        assert_eq!(cell_b, cell_a + (cell_b - cell_a));
+
+        let cell_c = Cell(3, 4);
+        let cell_d = Cell(0, 0);
+        assert_eq!(cell_d, cell_c + (cell_d - cell_c))
     }
 }

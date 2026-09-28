@@ -5,251 +5,13 @@ use sdl3::render::Canvas;
 use sdl3::render::FRect;
 use sdl3::video::Window;
 
-use std::collections::VecDeque;
 use std::vec::Vec;
 
+pub mod game;
 pub mod grid;
-use grid::Cell;
-use grid::Grid;
-use grid::Offset;
 
-// -------------------------------------------------------------
-// Game :: Model
-// -------------------------------------------------------------
-
-#[derive(Copy, Clone)]
-enum Direction {
-    North,
-    South,
-    West,
-    East,
-}
-
-impl From<Direction> for Offset {
-    fn from(value: Direction) -> Self {
-        match value {
-            Direction::North => Offset::NORTH,
-            Direction::South => Offset::SOUTH,
-            Direction::West => Offset::WEST,
-            Direction::East => Offset::EAST,
-        }
-    }
-}
-
-struct Snake {
-    head: Cell,
-    body: Vec<Cell>,
-    tail: usize,
-}
-
-impl Snake {
-    fn new(head: Cell) -> Self {
-        let body = Vec::new();
-        Self {
-            head,
-            body,
-            tail: 0,
-        }
-    }
-
-    fn step(&mut self, direction: Direction) {
-        if !self.body.is_empty() {
-            self.body[self.tail] = self.head;
-            self.tail += 1;
-        }
-
-        self.head += Offset::from(direction);
-
-        if self.tail == self.body.len() {
-            self.tail = 0;
-        }
-    }
-
-    fn grow(&mut self, direction: Direction) {
-        self.body.insert(
-            self.tail,
-            if self.body.is_empty() {
-                self.head
-            } else {
-                self.body[self.tail]
-            },
-        );
-        self.step(direction);
-    }
-}
-
-#[derive(PartialEq)]
-enum GameState {
-    Playing,
-    GameOver,
-}
-
-struct Game {
-    state: GameState,
-    grid: Grid,
-    snake: Snake,
-    apple: Cell,
-    direction: Direction,
-    queue: VecDeque<Direction>,
-}
-
-enum Mode {
-    Normal,
-}
-
-impl Game {
-    fn new(mode: Mode) -> Self {
-        let state = GameState::Playing;
-        let direction = Direction::East;
-        let queue = VecDeque::new();
-        match mode {
-            Mode::Normal => {
-                let grid = Grid::new(24, 24);
-                let apple = Cell::new(18, 18);
-                let mut snake = Snake::new(Cell::new(4, 4));
-                snake.grow(Direction::East);
-                snake.grow(Direction::East);
-                snake.grow(Direction::East);
-                Self {
-                    state,
-                    grid,
-                    snake,
-                    apple,
-                    direction,
-                    queue,
-                }
-            }
-        }
-    }
-
-    fn step(&mut self) {
-        let state = &mut self.state;
-        let grid = &self.grid;
-        let snake = &mut self.snake;
-        let apple = &mut self.apple;
-        let direction = &mut self.direction;
-        let queue = &mut self.queue;
-
-        match state {
-            // Stepping GameOver is a no-op.
-            GameState::GameOver => {}
-            GameState::Playing => {
-                let next_head = snake.head + Offset::from(*direction);
-                if grid.contains(next_head) {
-                    if next_head == *apple {
-                        loop {
-                            *apple = grid.random_cell();
-                            if *apple != snake.head && !snake.body.contains(apple) {
-                                break;
-                            }
-                        }
-                        snake.grow(*direction);
-                    } else {
-                        snake.step(*direction);
-                    }
-                    if snake.body.contains(&snake.head) {
-                        *state = GameState::GameOver;
-                    }
-                } else {
-                    *state = GameState::GameOver;
-                }
-                if let Some(new_direction) = queue.pop_back() {
-                    *direction = new_direction;
-                }
-            }
-        }
-    }
-
-    fn north(&mut self) {
-        let len = self.queue.len();
-        if len <= 3 {
-            let direction = match self.queue.front() {
-                Some(direction) => *direction,
-                None => self.direction,
-            };
-
-            match direction {
-                Direction::West | Direction::East => {
-                    self.queue.push_front(Direction::North);
-                }
-                _ => {}
-            }
-        }
-    }
-    fn south(&mut self) {
-        let len = self.queue.len();
-        if len <= 3 {
-            let direction = match self.queue.front() {
-                Some(direction) => *direction,
-                None => self.direction,
-            };
-
-            match direction {
-                Direction::West | Direction::East => {
-                    self.queue.push_front(Direction::South);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    fn west(&mut self) {
-        let len = self.queue.len();
-        if len <= 3 {
-            let direction = match self.queue.front() {
-                Some(direction) => *direction,
-                None => self.direction,
-            };
-
-            match direction {
-                Direction::North | Direction::South => {
-                    self.queue.push_front(Direction::West);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    fn east(&mut self) {
-        let len = self.queue.len();
-        if len <= 3 {
-            let direction = match self.queue.front() {
-                Some(direction) => *direction,
-                None => self.direction,
-            };
-
-            match direction {
-                Direction::North | Direction::South => {
-                    self.queue.push_front(Direction::East);
-                }
-                _ => {}
-            }
-        }
-    }
-}
-
-// -------------------------------------------------------------
-// SDL3 / Game Bridge
-// -------------------------------------------------------------
-
-struct Snapshot<'a> {
-    apple: Cell,
-    head: Cell,
-    body: &'a [Cell],
-}
-
-trait Observable {
-    fn snapshot(&self) -> Snapshot<'_>;
-}
-
-impl Observable for Game {
-    fn snapshot(&self) -> Snapshot<'_> {
-        let apple = self.apple;
-        let head = self.snake.head;
-        let body = self.snake.body.as_slice();
-        Snapshot { apple, head, body }
-    }
-}
+use game::{Game, GameState, Mode};
+use grid::{Cell, Grid};
 
 // -------------------------------------------------------------
 // SDL3 Extensions
@@ -337,6 +99,10 @@ impl RenderSnapshot for Canvas<Window> {
 }
 
 // -------------------------------------------------------------
+// App Model
+// -------------------------------------------------------------
+
+// -------------------------------------------------------------
 // Main
 // -------------------------------------------------------------
 
@@ -413,33 +179,5 @@ fn main() {
             0,
             ns_frame_cap - ns_counter.nanoseconds(),
         ));
-    }
-}
-
-// -------------------------------------------------------------
-// Tests
-// -------------------------------------------------------------
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn add_cell_offset_normal() {
-        let cell = Cell(1, 0);
-        let offset = Offset::SOUTH;
-        let result = cell + offset;
-        eprintln!("{:?}", result);
-        assert_eq!(result, Cell(1, 1));
-    }
-
-    #[test]
-    fn sub_cell_from_cell() {
-        let cell_a = Cell(3, 4);
-        let cell_b = Cell(4, 5);
-        assert_eq!(cell_b, cell_a + (cell_b - cell_a));
-
-        let cell_c = Cell(3, 4);
-        let cell_d = Cell(0, 0);
-        assert_eq!(cell_d, cell_c + (cell_d - cell_c))
     }
 }
