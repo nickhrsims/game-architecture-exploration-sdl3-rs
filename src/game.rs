@@ -1,22 +1,22 @@
 use std::collections::VecDeque;
 use std::vec::Vec;
 
-use crate::grid::{Cell, Grid, Offset};
+use crate::grid::{Grid, Offset, Point};
 
 pub struct Game {
     pub state: GameState,
     pub grid: Grid,
     snake: Snake,
-    apple: Cell,
+    apple: Point,
     direction: Direction,
     queue: VecDeque<Direction>,
 }
 
 #[derive(PartialEq, Copy, Clone)]
 pub struct Snapshot<'a> {
-    pub apple: Cell,
-    pub head: Cell,
-    pub body: &'a [Cell],
+    pub apple: Point,
+    pub head: Point,
+    pub body: &'a [Point],
     pub state: GameState,
 }
 
@@ -27,8 +27,8 @@ pub enum GameState {
 }
 
 struct Snake {
-    head: Cell,
-    body: Vec<Cell>,
+    head: Point,
+    body: Vec<Point>,
     tail: usize,
 }
 
@@ -50,8 +50,8 @@ impl Game {
         let direction = Direction::East;
         let queue = VecDeque::new();
         let grid = Grid::new(grid_width, grid_height);
-        let apple = Cell::new(grid_width as i32 - 4, grid_height as i32 - 4);
-        let mut snake = Snake::new(Cell::new(4, 4));
+        let apple = Point::new(grid_width as i32 - 4, grid_height as i32 - 4);
+        let mut snake = Snake::new(Point::new(4, 4));
         snake.grow(Direction::East);
         snake.grow(Direction::East);
         snake.grow(Direction::East);
@@ -94,7 +94,7 @@ impl Game {
                 if grid.contains(next_head) {
                     if next_head == *apple {
                         loop {
-                            *apple = grid.random_cell();
+                            *apple = grid.random_point();
                             if *apple != snake.head && !snake.body.contains(apple) {
                                 break;
                             }
@@ -185,7 +185,7 @@ impl Game {
 }
 
 impl Snake {
-    fn new(head: Cell) -> Self {
+    fn new(head: Point) -> Self {
         let body = Vec::new();
         Self {
             head,

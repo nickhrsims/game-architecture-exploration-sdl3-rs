@@ -9,7 +9,7 @@ use std::process::exit;
 use std::vec::Vec;
 
 use crate::game;
-use crate::grid::{Cell, Grid};
+use crate::grid::{Grid, Point};
 use crate::platform;
 
 pub struct App {
@@ -55,9 +55,9 @@ enum GameplayState {
 }
 
 trait RenderTrait {
-    fn draw_body(&mut self, scale: u8, body: &[Cell]);
-    fn draw_head(&mut self, scale: u8, head: Cell);
-    fn draw_apple(&mut self, scale: u8, apple: Cell);
+    fn draw_body(&mut self, scale: u8, body: &[Point]);
+    fn draw_head(&mut self, scale: u8, head: Point);
+    fn draw_apple(&mut self, scale: u8, apple: Point);
     fn draw_grid(&mut self, scale: u8, grid: &Grid);
 }
 
@@ -295,7 +295,7 @@ impl HighResolutionCounter {
 }
 
 impl RenderTrait for Canvas<Window> {
-    fn draw_body(&mut self, scale: u8, body: &[Cell]) {
+    fn draw_body(&mut self, scale: u8, body: &[Point]) {
         let rects: Vec<FRect> = body
             .iter()
             .map(|cell| {
@@ -311,7 +311,7 @@ impl RenderTrait for Canvas<Window> {
         self.fill_rects(&rects).expect("Rendering does not fail");
     }
 
-    fn draw_head(&mut self, scale: u8, head: Cell) {
+    fn draw_head(&mut self, scale: u8, head: Point) {
         let rect = FRect::new(
             head.0 as f32 * scale as f32,
             head.1 as f32 * scale as f32,
@@ -323,7 +323,7 @@ impl RenderTrait for Canvas<Window> {
         self.fill_rect(rect).expect("Rendering does not fail");
     }
 
-    fn draw_apple(&mut self, scale: u8, apple: Cell) {
+    fn draw_apple(&mut self, scale: u8, apple: Point) {
         let rect = FRect::new(
             apple.0 as f32 * scale as f32,
             apple.1 as f32 * scale as f32,
@@ -343,5 +343,22 @@ impl RenderTrait for Canvas<Window> {
             grid.height as f32 * scale as f32,
         ))
         .unwrap();
+    }
+}
+
+trait Adjust2D {
+    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32);
+}
+
+impl Adjust2D for FRect {
+    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32) {
+        let x = x as f32;
+        let y = y as f32;
+        let w = w as f32;
+        let h = h as f32;
+        self.x += x;
+        self.y += y;
+        self.w += w;
+        self.h += h;
     }
 }
