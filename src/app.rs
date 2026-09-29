@@ -28,9 +28,9 @@ pub struct Config {
     pub grid_scale: u8,
 }
 
-struct Session {
+struct Gameplay {
     game: game::Game,
-    state: SessionState,
+    state: GameplayState,
 }
 
 struct ExitStatus {
@@ -43,11 +43,12 @@ struct HighResolutionCounter(u64, u64);
 enum AppState {
     Initializing,
     MainMenu,
-    Session(Session),
+    InGame(Gameplay),
     Exiting(ExitStatus),
 }
 
-enum SessionState {
+#[derive(PartialEq)]
+enum GameplayState {
     Playing,
     Paused,
     Ending,
@@ -62,9 +63,9 @@ trait RenderTrait {
 
 impl App {
     pub fn new(config: Config) -> Self {
-        let state = AppState::Session(Session {
+        let state = AppState::InGame(Gameplay {
             game: game::Game::new(config.grid_width, config.grid_height),
-            state: SessionState::Playing,
+            state: GameplayState::Playing,
         });
         let platform = platform::Platform::init(platform::Config {
             window_title: config.name,
@@ -114,7 +115,7 @@ impl App {
                     AppState::Initializing => {}
                     AppState::MainMenu => {}
                     AppState::Exiting(_) => {}
-                    AppState::Session(ref mut session) => {
+                    AppState::InGame(ref mut session) => {
                         session.handle_platform_event(&event);
                     }
                 },
@@ -133,9 +134,9 @@ impl App {
             AppState::Exiting(ref mut status) => {
                 exit(status.code);
             }
-            AppState::Session(ref mut session) => {
+            AppState::InGame(ref mut session) => {
                 session.update();
-                if matches!(session.state, SessionState::Ending) {
+                if matches!(session.state, GameplayState::Ending) {
                     self.state = AppState::Exiting(ExitStatus { code: 0, msg: "" })
                 }
             }
@@ -143,38 +144,66 @@ impl App {
     }
 
     fn render(&mut self) {
+        self.platform.canvas.set_draw_color(Color::BLACK);
+        self.platform.canvas.clear();
         match self.state {
             AppState::Initializing => {}
             AppState::MainMenu => {}
             AppState::Exiting(_) => {}
-            AppState::Session(ref mut session) => {
+            AppState::InGame(ref mut session) => {
                 session.render(&self.config, &mut self.platform.canvas);
             }
         }
+        self.platform.canvas.present();
     }
 }
 
-impl Session {
+impl Gameplay {
     pub fn handle_platform_event(&mut self, event: &sdl3::event::Event) {
-        let game = &mut self.game;
-        match event {
-            Event::KeyDown {
-                keycode: Some(Keycode::Up),
-                ..
-            } => game.north(),
-            Event::KeyDown {
-                keycode: Some(Keycode::Down),
-                ..
-            } => game.south(),
-            Event::KeyDown {
-                keycode: Some(Keycode::Left),
-                ..
-            } => game.west(),
-            Event::KeyDown {
-                keycode: Some(Keycode::Right),
-                ..
-            } => game.east(),
-            _ => {}
+        match self.state {
+            GameplayState::Playing => {
+                let game = &mut self.game;
+                match event {
+                    Event::KeyDown {
+                        keycode: Some(Keycode::Up),
+                        ..
+                    } => game.north(),
+                    Event::KeyDown {
+                        keycode: Some(Keycode::Down),
+                        ..
+                    } => game.south(),
+                    Event::KeyDown {
+                        keycode: Some(Keycode::Left),
+                        ..
+                    } => game.west(),
+                    Event::KeyDown {
+                        keycode: Some(Keycode::Right),
+                        ..
+                    } => game.east(),
+                    Event::KeyDown {
+                        keycode: Some(Keycode::P),
+                        ..
+                    } => self.state = GameplayState::Paused,
+                    _ => {}
+                }
+            }
+
+            GameplayState::Paused => {
+                if let Event::KeyDown {
+                    keycode: Some(Keycode::P),
+                    ..
+                } = event
+                {
+                    self.state = GameplayState::Playing;
+                } else {
+                    // TODO:
+                    // pass it along to the pause menu
+                }
+            }
+
+            GameplayState::Ending => {
+                // no-op
+            }
         }
     }
 
@@ -185,14 +214,14 @@ impl Session {
         let game = &mut self.game;
 
         match state {
-            SessionState::Playing => {
+            GameplayState::Playing => {
                 game.step();
                 if game.state == game::GameState::GameOver {
-                    self.state = SessionState::Ending;
+                    self.state = GameplayState::Ending;
                 }
             }
-            SessionState::Paused => {}
-            SessionState::Ending => {}
+            GameplayState::Paused => {}
+            GameplayState::Ending => {}
         }
     }
 
@@ -203,7 +232,35 @@ impl Session {
         canvas.draw_head(config.grid_scale, snapshot.head);
         canvas.draw_body(config.grid_scale, snapshot.body);
         canvas.draw_apple(config.grid_scale, snapshot.apple);
-        canvas.present();
+
+        if self.state == GameplayState::Paused {
+            let grid_rect = FRect::new(
+                0f32,
+                0f32,
+                config.grid_width as f32 * config.grid_scale as f32,
+                config.grid_height as f32 * config.grid_scale as f32,
+            );
+
+            canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
+            canvas.fill_rect(grid_rect).expect("Renders grid rect");
+
+            let bar_scale = (config.grid_scale / 4) as f32;
+
+            let bar_width = bar_scale;
+            let bar_height = bar_scale * 4f32;
+
+            let bar_y = (config.grid_height - 2) as f32 * config.grid_scale as f32;
+
+            let bar_1_x = (config.grid_width - 2) as f32 * config.grid_scale as f32 + bar_scale;
+            let bar_2_x = (config.grid_width - 1) as f32 * config.grid_scale as f32 - bar_scale;
+
+            let bar_1_rect = FRect::new(bar_1_x, bar_y, bar_width, bar_height);
+            let bar_2_rect = FRect::new(bar_2_x, bar_y, bar_width, bar_height);
+
+            canvas.set_draw_color(Color::WHITE);
+            canvas.fill_rect(bar_1_rect).unwrap();
+            canvas.fill_rect(bar_2_rect).unwrap();
+        }
     }
 }
 
