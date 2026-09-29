@@ -16,6 +16,11 @@ impl Point {
             rand::random_range(0..y_limit),
         )
     }
+
+    pub fn scale(&mut self, x: i32, y: i32) {
+        self.0 *= x;
+        self.1 *= y;
+    }
 }
 
 impl std::ops::Add<Point> for Point {

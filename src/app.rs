@@ -9,7 +9,7 @@ use std::process::exit;
 use std::vec::Vec;
 
 use crate::game;
-use crate::grid::{Grid, Point};
+use crate::grid::{Grid, Point, Size};
 use crate::platform;
 
 pub struct App {
@@ -23,8 +23,8 @@ pub struct Config {
 
     pub fps: u8,
 
-    pub grid_width: u16,
-    pub grid_height: u16,
+    pub grid_width: u32,
+    pub grid_height: u32,
     pub grid_scale: u8,
 }
 
@@ -64,13 +64,13 @@ trait RenderTrait {
 impl App {
     pub fn new(config: Config) -> Self {
         let state = AppState::InGame(Gameplay {
-            game: game::Game::new(config.grid_width, config.grid_height),
+            game: game::Game::new(Grid::new(Size::new(config.grid_width, config.grid_height))),
             state: GameplayState::Playing,
         });
         let platform = platform::Platform::init(platform::Config {
             window_title: config.name,
-            window_width: config.grid_width as u32 * config.grid_scale as u32,
-            window_height: config.grid_height as u32 * config.grid_scale as u32,
+            window_width: config.grid_width * config.grid_scale as u32,
+            window_height: config.grid_height * config.grid_scale as u32,
         });
         Self {
             config,
@@ -226,7 +226,7 @@ impl Gameplay {
         match state {
             GameplayState::Playing => {
                 game.step();
-                if game.state == game::GameState::GameOver {
+                if game.state == game::State::GameOver {
                     self.state = GameplayState::Ending;
                 }
             }
@@ -339,26 +339,9 @@ impl RenderTrait for Canvas<Window> {
         self.fill_rect(FRect::new(
             0f32,
             0f32,
-            grid.width as f32 * scale as f32,
-            grid.height as f32 * scale as f32,
+            grid.width() as f32 * scale as f32,
+            grid.height() as f32 * scale as f32,
         ))
         .unwrap();
-    }
-}
-
-trait Adjust2D {
-    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32);
-}
-
-impl Adjust2D for FRect {
-    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32) {
-        let x = x as f32;
-        let y = y as f32;
-        let w = w as f32;
-        let h = h as f32;
-        self.x += x;
-        self.y += y;
-        self.w += w;
-        self.h += h;
     }
 }

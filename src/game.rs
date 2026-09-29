@@ -4,7 +4,7 @@ use std::vec::Vec;
 use crate::grid::{Grid, Point};
 
 pub struct Game {
-    pub state: GameState,
+    pub state: State,
     pub grid: Grid,
     snake: Snake,
     apple: Point,
@@ -17,11 +17,11 @@ pub struct Snapshot<'a> {
     pub apple: Point,
     pub head: Point,
     pub body: &'a [Point],
-    pub state: GameState,
+    pub state: State,
 }
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum GameState {
+pub enum State {
     Playing,
     GameOver,
 }
@@ -41,16 +41,16 @@ enum Direction {
 }
 
 impl Game {
-    pub fn new(grid_width: u16, grid_height: u16) -> Self {
-        if grid_width < 16 || grid_height < 16 {
+    pub fn new(grid: Grid) -> Self {
+        if grid.width() < 16 || grid.height() < 16 {
             panic!("Grid width and height must each be at least 16");
         }
 
-        let state = GameState::Playing;
+        let grid = grid;
+        let state = State::Playing;
         let direction = Direction::East;
         let queue = VecDeque::new();
-        let grid = Grid::new(grid_width, grid_height);
-        let apple = Point::new(grid_width as i32 - 4, grid_height as i32 - 4);
+        let apple = Point::new(grid.width() as i32 - 4, grid.height() as i32 - 4);
         let mut snake = Snake::new(Point::new(4, 4));
         snake.grow(Direction::East);
         snake.grow(Direction::East);
@@ -88,8 +88,8 @@ impl Game {
 
         match state {
             // Stepping GameOver is a no-op.
-            GameState::GameOver => {}
-            GameState::Playing => {
+            State::GameOver => {}
+            State::Playing => {
                 let next_head = snake.head + Point::from(*direction);
                 if grid.contains(next_head) {
                     if next_head == *apple {
@@ -104,10 +104,10 @@ impl Game {
                         snake.step(*direction);
                     }
                     if snake.body.contains(&snake.head) {
-                        *state = GameState::GameOver;
+                        *state = State::GameOver;
                     }
                 } else {
-                    *state = GameState::GameOver;
+                    *state = State::GameOver;
                 }
                 if let Some(new_direction) = queue.pop_back() {
                     *direction = new_direction;
