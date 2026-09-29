@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::vec::Vec;
 
-use crate::grid::{Grid, Offset, Point};
+use crate::grid::{Grid, Point};
 
 pub struct Game {
     pub state: GameState,
@@ -90,7 +90,7 @@ impl Game {
             // Stepping GameOver is a no-op.
             GameState::GameOver => {}
             GameState::Playing => {
-                let next_head = snake.head + Offset::from(*direction);
+                let next_head = snake.head + Point::from(*direction);
                 if grid.contains(next_head) {
                     if next_head == *apple {
                         loop {
@@ -200,7 +200,7 @@ impl Snake {
             self.tail += 1;
         }
 
-        self.head += Offset::from(direction);
+        self.head += Point::from(direction);
 
         if self.tail == self.body.len() {
             self.tail = 0;
@@ -220,13 +220,13 @@ impl Snake {
     }
 }
 
-impl From<Direction> for Offset {
+impl From<Direction> for Point {
     fn from(value: Direction) -> Self {
         match value {
-            Direction::North => Offset::NORTH,
-            Direction::South => Offset::SOUTH,
-            Direction::West => Offset::WEST,
-            Direction::East => Offset::EAST,
+            Direction::North => Point::NORTH,
+            Direction::South => Point::SOUTH,
+            Direction::West => Point::WEST,
+            Direction::East => Point::EAST,
         }
     }
 }

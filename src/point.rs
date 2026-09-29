@@ -1,9 +1,6 @@
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Point(pub i32, pub i32);
 
-#[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Offset(pub i32, pub i32);
-
 impl Point {
     pub fn new(x: i32, y: i32) -> Self {
         Self(x, y)
@@ -21,15 +18,9 @@ impl Point {
     }
 }
 
-impl Offset {
-    pub fn new(x: i32, y: i32) -> Self {
-        Self(x, y)
-    }
-}
-
-impl std::ops::Add<Offset> for Point {
+impl std::ops::Add<Point> for Point {
     type Output = Point;
-    fn add(self, rhs: Offset) -> Point {
+    fn add(self, rhs: Point) -> Point {
         let lhs0 = self.0;
         let lhs1 = self.1;
         let rhs0 = rhs.0;
@@ -42,8 +33,8 @@ impl std::ops::Add<Offset> for Point {
     }
 }
 
-impl std::ops::AddAssign<Offset> for Point {
-    fn add_assign(&mut self, rhs: Offset) {
+impl std::ops::AddAssign<Point> for Point {
+    fn add_assign(&mut self, rhs: Point) {
         let lhs0 = self.0;
         let lhs1 = self.1;
         let rhs0 = rhs.0;
@@ -55,8 +46,8 @@ impl std::ops::AddAssign<Offset> for Point {
 }
 
 impl std::ops::Sub for Point {
-    type Output = Offset;
-    fn sub(self, rhs: Point) -> Offset {
+    type Output = Point;
+    fn sub(self, rhs: Point) -> Point {
         let lhs0 = self.0;
         let lhs1 = self.1;
         let rhs0 = rhs.0;
@@ -65,6 +56,6 @@ impl std::ops::Sub for Point {
         let r0 = lhs0 - rhs0;
         let r1 = lhs1 - rhs1;
 
-        Offset(r0, r1)
+        Point(r0, r1)
     }
 }

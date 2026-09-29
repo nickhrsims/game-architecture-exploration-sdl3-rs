@@ -1,4 +1,3 @@
-pub use crate::point::Offset;
 pub use crate::point::Point;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -23,11 +22,11 @@ impl Grid {
     }
 }
 
-impl Offset {
-    pub const NORTH: Offset = Offset(0, -1);
-    pub const SOUTH: Offset = Offset(0, 1);
-    pub const WEST: Offset = Offset(-1, 0);
-    pub const EAST: Offset = Offset(1, 0);
+impl Point {
+    pub const NORTH: Point = Point(0, -1);
+    pub const SOUTH: Point = Point(0, 1);
+    pub const WEST: Point = Point(-1, 0);
+    pub const EAST: Point = Point(1, 0);
 }
 
 #[cfg(test)]
@@ -46,7 +45,7 @@ mod tests {
     #[test]
     fn add_point_offset_normal() {
         let point = Point::new(1, 0);
-        let offset = Offset::SOUTH;
+        let offset = Point::SOUTH;
         let result = point + offset;
         eprintln!("{:?}", result);
         assert_eq!(result, Point::new(1, 1));
