@@ -110,7 +110,12 @@ impl App {
                 | Event::KeyDown {
                     keycode: Some(Keycode::Q),
                     ..
-                } => self.state = AppState::Exiting(ExitStatus { code: 0, msg: "" }),
+                } => {
+                    self.state = AppState::Exiting(ExitStatus {
+                        code: 0,
+                        msg: "\nBye!",
+                    })
+                }
                 _ => match self.state {
                     AppState::Initializing => {}
                     AppState::MainMenu => {}
@@ -139,7 +144,10 @@ impl App {
             AppState::InGame(ref mut session) => {
                 session.update();
                 if session.state == GameplayState::Ending {
-                    self.state = AppState::Exiting(ExitStatus { code: 0, msg: "" })
+                    self.state = AppState::Exiting(ExitStatus {
+                        code: 0,
+                        msg: "\nYou Died!",
+                    })
                 }
             }
         }
