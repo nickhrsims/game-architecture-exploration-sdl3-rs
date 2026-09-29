@@ -32,7 +32,9 @@ impl Platform {
             .build()
             .expect("SDL3 Window is created");
 
-        let canvas: Canvas<Window> = window.into_canvas();
+        let mut canvas: Canvas<Window> = window.into_canvas();
+
+        canvas.set_blend_mode(sdl3::render::BlendMode::Blend);
 
         let events = sdl
             .event_pump()
