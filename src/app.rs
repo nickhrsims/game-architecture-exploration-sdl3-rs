@@ -136,7 +136,7 @@ impl App {
             }
             AppState::InGame(ref mut session) => {
                 session.update();
-                if matches!(session.state, GameplayState::Ending) {
+                if session.state == GameplayState::Ending {
                     self.state = AppState::Exiting(ExitStatus { code: 0, msg: "" })
                 }
             }
