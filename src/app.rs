@@ -132,6 +132,8 @@ impl App {
                 todo!()
             }
             AppState::Exiting(ref mut status) => {
+                let msg = status.msg;
+                eprintln!("{msg}");
                 exit(status.code);
             }
             AppState::InGame(ref mut session) => {
