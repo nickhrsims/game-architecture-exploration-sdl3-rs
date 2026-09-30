@@ -1,3 +1,5 @@
+use super::Scale;
+
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Point(pub i32, pub i32);
 
