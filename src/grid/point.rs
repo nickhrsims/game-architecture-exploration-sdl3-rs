@@ -76,3 +76,15 @@ impl From<(i32, i32)> for Point {
         Self(x, y)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_scales() {
+        let mut point = Point::new(2, 2);
+        point.scale((1, 1));
+        assert_eq!(point, Point::new(2, 2));
+    }
+}
