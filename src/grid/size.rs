@@ -1,19 +1,29 @@
+use super::Scale;
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Size(pub u32, pub u32);
 
 impl Size {
     pub fn new(w: u32, h: u32) -> Self {
         if w == 0 || h == 0 {
-            panic!("Given width({w}) and height({h}) invalid: must not be 0");
+            panic!("width({w}) and height({h}) must be non-zero");
         }
         Self(w, h)
     }
 
-    pub fn scale(&mut self, w: f32, h: f32) {
-        let scaled_w = self.0 as f32 * w;
-        let scaled_h = self.1 as f32 * h;
-        self.0 *= scaled_w as u32;
-        self.1 *= scaled_h as u32;
+    pub fn scaled(&self, scale: Scale) -> Self {
+        let w = (self.0 as f32 * scale.0) as u32;
+        let h = (self.1 as f32 * scale.1) as u32;
+
+        Self(w, h)
+    }
+
+    pub fn scale(&mut self, scale: Scale) {
+        let w = (self.0 as f32 * scale.0) as u32;
+        let h = (self.1 as f32 * scale.1) as u32;
+
+        self.0 = w;
+        self.1 = h;
     }
 }
 
