@@ -7,8 +7,11 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn new(position: Point, size: Size) -> Self {
-        Self { position, size }
+    pub fn new<P: Into<Point>, S: Into<Size>>(position: P, size: S) -> Self {
+        Self {
+            position: position.into(),
+            size: size.into(),
+        }
     }
 
     pub fn translated(&self, displacement: Point) -> Self {
