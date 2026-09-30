@@ -1,6 +1,7 @@
 use sdl3::EventPump;
 use sdl3::Sdl;
 use sdl3::render::Canvas;
+use sdl3::ttf::Sdl3TtfContext;
 use sdl3::video::Window;
 
 pub struct Platform {
@@ -8,6 +9,7 @@ pub struct Platform {
     pub sdl: Sdl,
     pub canvas: Canvas<Window>,
     pub events: EventPump,
+    pub ttf: Sdl3TtfContext,
 }
 
 pub struct Config {
@@ -40,11 +42,14 @@ impl Platform {
             .event_pump()
             .expect("SDL3 Event Pump is ready and acquirable");
 
+        let ttf = sdl3::ttf::init().expect("TTF subsystem initializes");
+
         Self {
             config,
             sdl,
             canvas,
             events,
+            ttf,
         }
     }
 }
