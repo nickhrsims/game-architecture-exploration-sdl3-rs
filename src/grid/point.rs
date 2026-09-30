@@ -17,9 +17,14 @@ impl Point {
         )
     }
 
-    pub fn scale(&mut self, x: i32, y: i32) {
-        self.0 *= x;
-        self.1 *= y;
+    pub fn scale<S: Into<Scale>>(&mut self, scale: S) {
+        let scale = scale.into();
+
+        let w = (self.0 as f32 * scale.0) as i32;
+        let h = (self.1 as f32 * scale.1) as i32;
+
+        self.0 = w;
+        self.1 = h;
     }
 }
 
