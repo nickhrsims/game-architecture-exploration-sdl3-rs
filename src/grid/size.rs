@@ -83,3 +83,19 @@ impl From<(u32, u32)> for Size {
         Self(w, h)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_scales() {
+        let mut size = Size::new(2, 2);
+        size.scale((1, 1));
+        assert_eq!(size, Size::new(2, 2));
+        size.scale((2, 3));
+        assert_eq!(size, Size::new(4, 6));
+        size.scale((0.5, 0.5));
+        assert_eq!(size, Size::new(2, 3));
+    }
+}
