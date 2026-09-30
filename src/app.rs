@@ -256,34 +256,17 @@ impl Gameplay {
             let window_width = (config.grid_width * config.grid_scale as u32) as i32;
             let window_height = (config.grid_height * config.grid_scale as u32) as i32;
 
-            let corner_rect = Rect::new(
-                (
-                    window_width - (config.grid_scale as i32 * 2),
-                    window_height - (config.grid_scale as i32 * 2),
+            icon.render(
+                canvas,
+                Rect::new(
+                    (
+                        window_width - (config.grid_scale as i32 * 2),
+                        window_height - (config.grid_scale as i32 * 2),
+                    ),
+                    (1, 1),
                 ),
-                (1, 1),
-            );
-            icon.render(canvas, corner_rect).unwrap();
-
-            //canvas.set_draw_color(Color::WHITE);
-            //canvas.fill_rect(Rect::new((0, 0), (16, 16))).unwrap();
-
-            // let bar_scale = (config.grid_scale / 4) as f32;
-            //
-            // let bar_width = bar_scale;
-            // let bar_height = bar_scale * 4f32;
-            //
-            // let bar_y = (config.grid_height - 2) as f32 * config.grid_scale as f32;
-            //
-            // let bar_1_x = (config.grid_width - 2) as f32 * config.grid_scale as f32 + bar_scale;
-            // let bar_2_x = (config.grid_width - 1) as f32 * config.grid_scale as f32 - bar_scale;
-            //
-            // let bar_1_rect = FRect::new(bar_1_x, bar_y, bar_width, bar_height);
-            // let bar_2_rect = FRect::new(bar_2_x, bar_y, bar_width, bar_height);
-            //
-            // canvas.set_draw_color(Color::WHITE);
-            // canvas.fill_rect(bar_1_rect).unwrap();
-            // canvas.fill_rect(bar_2_rect).unwrap();
+            )
+            .unwrap();
         }
     }
 }
