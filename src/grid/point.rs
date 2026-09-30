@@ -72,10 +72,10 @@ impl std::ops::Sub for Point {
     }
 }
 
-impl From<(i32, i32)> for Point {
-    fn from(value: (i32, i32)) -> Self {
+impl<X: Into<i32>, Y: Into<i32>> From<(X, Y)> for Point {
+    fn from(value: (X, Y)) -> Self {
         let (x, y) = value;
-        Self(x, y)
+        Self::new(x, y)
     }
 }
 
