@@ -18,7 +18,9 @@ impl Size {
         Self(w, h)
     }
 
-    pub fn scale(&mut self, scale: Scale) {
+    pub fn scale<S: Into<Scale>>(&mut self, scale: S) {
+        let scale = scale.into();
+
         let w = (self.0 as f32 * scale.0) as u32;
         let h = (self.1 as f32 * scale.1) as u32;
 
