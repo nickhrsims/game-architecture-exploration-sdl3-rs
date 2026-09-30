@@ -1,3 +1,7 @@
+pub mod block;
+pub mod icon;
+pub mod rect;
+
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
 use sdl3::pixels::Color;
@@ -9,8 +13,10 @@ use std::process::exit;
 use std::vec::Vec;
 
 use crate::game;
-use crate::grid::{Grid, Point, Size};
+use crate::grid::{Grid, Point, Rect, Size};
 use crate::platform;
+
+pub use block::Block;
 
 pub struct App {
     config: Config,
@@ -50,7 +56,7 @@ enum AppState {
 #[derive(PartialEq)]
 enum GameplayState {
     Playing,
-    Paused,
+    Paused { icon: icon::Pause },
     Ending,
 }
 
@@ -141,9 +147,9 @@ impl App {
                 eprintln!("{msg}");
                 exit(status.code);
             }
-            AppState::InGame(ref mut session) => {
-                session.update();
-                if session.state == GameplayState::Ending {
+            AppState::InGame(ref mut gameplay) => {
+                gameplay.update();
+                if gameplay.state == GameplayState::Ending {
                     self.state = AppState::Exiting(ExitStatus {
                         code: 0,
                         msg: "\nYou Died!",
@@ -193,12 +199,17 @@ impl Gameplay {
                     Event::KeyDown {
                         keycode: Some(Keycode::P),
                         ..
-                    } => self.state = GameplayState::Paused,
+                    } => {
+                        self.state = GameplayState::Paused {
+                            icon: icon::Pause::new(),
+                        }
+                    }
+
                     _ => {}
                 }
             }
 
-            GameplayState::Paused => {
+            GameplayState::Paused { .. } => {
                 if let Event::KeyDown {
                     keycode: Some(Keycode::P),
                     ..
@@ -230,7 +241,7 @@ impl Gameplay {
                     self.state = GameplayState::Ending;
                 }
             }
-            GameplayState::Paused => {}
+            GameplayState::Paused { .. } => {}
             GameplayState::Ending => {}
         }
     }
@@ -243,7 +254,7 @@ impl Gameplay {
         canvas.draw_body(config.grid_scale, snapshot.body);
         canvas.draw_apple(config.grid_scale, snapshot.apple);
 
-        if self.state == GameplayState::Paused {
+        if let GameplayState::Paused { icon } = &self.state {
             let grid_rect = FRect::new(
                 0f32,
                 0f32,
@@ -254,22 +265,37 @@ impl Gameplay {
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
             canvas.fill_rect(grid_rect).expect("Renders grid rect");
 
-            let bar_scale = (config.grid_scale / 4) as f32;
+            let window_width = (config.grid_width * config.grid_scale as u32) as i32;
+            let window_height = (config.grid_height * config.grid_scale as u32) as i32;
 
-            let bar_width = bar_scale;
-            let bar_height = bar_scale * 4f32;
+            let corner_rect = Rect::new(
+                (
+                    window_width - (config.grid_scale as i32 * 2),
+                    window_height - (config.grid_scale as i32 * 2),
+                ),
+                (1, 1),
+            );
+            icon.render(canvas, corner_rect).unwrap();
 
-            let bar_y = (config.grid_height - 2) as f32 * config.grid_scale as f32;
+            //canvas.set_draw_color(Color::WHITE);
+            //canvas.fill_rect(Rect::new((0, 0), (16, 16))).unwrap();
 
-            let bar_1_x = (config.grid_width - 2) as f32 * config.grid_scale as f32 + bar_scale;
-            let bar_2_x = (config.grid_width - 1) as f32 * config.grid_scale as f32 - bar_scale;
-
-            let bar_1_rect = FRect::new(bar_1_x, bar_y, bar_width, bar_height);
-            let bar_2_rect = FRect::new(bar_2_x, bar_y, bar_width, bar_height);
-
-            canvas.set_draw_color(Color::WHITE);
-            canvas.fill_rect(bar_1_rect).unwrap();
-            canvas.fill_rect(bar_2_rect).unwrap();
+            // let bar_scale = (config.grid_scale / 4) as f32;
+            //
+            // let bar_width = bar_scale;
+            // let bar_height = bar_scale * 4f32;
+            //
+            // let bar_y = (config.grid_height - 2) as f32 * config.grid_scale as f32;
+            //
+            // let bar_1_x = (config.grid_width - 2) as f32 * config.grid_scale as f32 + bar_scale;
+            // let bar_2_x = (config.grid_width - 1) as f32 * config.grid_scale as f32 - bar_scale;
+            //
+            // let bar_1_rect = FRect::new(bar_1_x, bar_y, bar_width, bar_height);
+            // let bar_2_rect = FRect::new(bar_2_x, bar_y, bar_width, bar_height);
+            //
+            // canvas.set_draw_color(Color::WHITE);
+            // canvas.fill_rect(bar_1_rect).unwrap();
+            // canvas.fill_rect(bar_2_rect).unwrap();
         }
     }
 }
@@ -343,5 +369,39 @@ impl RenderTrait for Canvas<Window> {
             grid.height() as f32 * scale as f32,
         ))
         .unwrap();
+    }
+}
+
+trait Adjust2D {
+    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32);
+}
+
+impl Adjust2D for FRect {
+    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32) {
+        let x = x as f32;
+        let y = y as f32;
+        let w = w as f32;
+        let h = h as f32;
+        self.x += x;
+        self.y += y;
+        self.w += w;
+        self.h += h;
+    }
+}
+
+// TODO: Remove and replace with internal rect translation
+
+trait AsFRect {
+    fn as_frect(&self, scale: f32) -> sdl3::render::FRect;
+}
+
+impl AsFRect for Grid {
+    fn as_frect(&self, scale: f32) -> sdl3::render::FRect {
+        FRect::new(
+            0f32,
+            0f32,
+            self.width() as f32 * scale,
+            self.height() as f32 * scale,
+        )
     }
 }
