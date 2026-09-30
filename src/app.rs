@@ -47,8 +47,6 @@ struct ExitStatus {
 struct HighResolutionCounter(u64, u64);
 
 enum AppState {
-    Initializing,
-    MainMenu,
     InGame(Gameplay),
     Exiting(ExitStatus),
 }
@@ -123,8 +121,6 @@ impl App {
                     })
                 }
                 _ => match self.state {
-                    AppState::Initializing => {}
-                    AppState::MainMenu => {}
                     AppState::Exiting(_) => {}
                     AppState::InGame(ref mut session) => {
                         session.handle_platform_event(&event);
@@ -136,12 +132,6 @@ impl App {
 
     fn update(&mut self) {
         match self.state {
-            AppState::Initializing => {
-                todo!();
-            }
-            AppState::MainMenu => {
-                todo!()
-            }
             AppState::Exiting(ref mut status) => {
                 let msg = status.msg;
                 eprintln!("{msg}");
@@ -163,8 +153,6 @@ impl App {
         self.platform.canvas.set_draw_color(Color::BLACK);
         self.platform.canvas.clear();
         match self.state {
-            AppState::Initializing => {}
-            AppState::MainMenu => {}
             AppState::Exiting(_) => {}
             AppState::InGame(ref mut session) => {
                 session.render(&self.config, &mut self.platform.canvas);
@@ -369,39 +357,5 @@ impl RenderTrait for Canvas<Window> {
             grid.height() as f32 * scale as f32,
         ))
         .unwrap();
-    }
-}
-
-trait Adjust2D {
-    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32);
-}
-
-impl Adjust2D for FRect {
-    fn adjust(&mut self, x: i32, y: i32, w: i32, h: i32) {
-        let x = x as f32;
-        let y = y as f32;
-        let w = w as f32;
-        let h = h as f32;
-        self.x += x;
-        self.y += y;
-        self.w += w;
-        self.h += h;
-    }
-}
-
-// TODO: Remove and replace with internal rect translation
-
-trait AsFRect {
-    fn as_frect(&self, scale: f32) -> sdl3::render::FRect;
-}
-
-impl AsFRect for Grid {
-    fn as_frect(&self, scale: f32) -> sdl3::render::FRect {
-        FRect::new(
-            0f32,
-            0f32,
-            self.width() as f32 * scale,
-            self.height() as f32 * scale,
-        )
     }
 }
