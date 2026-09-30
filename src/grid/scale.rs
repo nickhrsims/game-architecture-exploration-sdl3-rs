@@ -15,3 +15,17 @@ impl Default for Scale {
         Self::new(1f32, 1f32)
     }
 }
+
+impl From<(f32, f32)> for Scale {
+    fn from(value: (f32, f32)) -> Self {
+        let (w, h) = value;
+        Self::new(w, h)
+    }
+}
+
+impl From<(i32, i32)> for Scale {
+    fn from(value: (i32, i32)) -> Self {
+        let (w, h) = value;
+        Self::new(w as f32, h as f32)
+    }
+}
