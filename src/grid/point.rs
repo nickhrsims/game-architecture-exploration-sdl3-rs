@@ -86,5 +86,9 @@ mod tests {
         let mut point = Point::new(2, 2);
         point.scale((1, 1));
         assert_eq!(point, Point::new(2, 2));
+        point.scale((2, 3));
+        assert_eq!(point, Point::new(4, 6));
+        point.scale((0.5, 0.5));
+        assert_eq!(point, Point::new(2, 3));
     }
 }
