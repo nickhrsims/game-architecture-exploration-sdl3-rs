@@ -46,7 +46,6 @@ impl Game {
             panic!("Grid width and height must each be at least 16");
         }
 
-        let grid = grid;
         let state = State::Playing;
         let direction = Direction::East;
         let queue = VecDeque::new();
