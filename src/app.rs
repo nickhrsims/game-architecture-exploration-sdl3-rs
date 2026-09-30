@@ -59,10 +59,10 @@ enum GameplayState {
 }
 
 trait RenderTrait {
-    fn draw_body(&mut self, scale: u8, body: &[Point]);
-    fn draw_head(&mut self, scale: u8, head: Point);
-    fn draw_apple(&mut self, scale: u8, apple: Point);
-    fn draw_grid(&mut self, scale: u8, grid: &Grid);
+    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error>;
+    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error>;
+    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error>;
+    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error>;
 }
 
 impl App {
@@ -92,7 +92,10 @@ impl App {
 
             self.handle_platform_events();
             self.update();
-            self.render();
+
+            if let Err(error) = self.render() {
+                panic!("Encountered SDL3 Rendering error: {error}");
+            }
 
             ns_counter.stop();
 
@@ -149,16 +152,17 @@ impl App {
         }
     }
 
-    fn render(&mut self) {
+    fn render(&mut self) -> Result<(), sdl3::Error> {
         self.platform.canvas.set_draw_color(Color::BLACK);
         self.platform.canvas.clear();
         match self.state {
             AppState::Exiting(_) => {}
             AppState::InGame(ref mut session) => {
-                session.render(&self.config, &mut self.platform.canvas);
+                session.render(&self.config, &mut self.platform.canvas)?;
             }
         }
         self.platform.canvas.present();
+        Ok(())
     }
 }
 
@@ -234,13 +238,17 @@ impl Gameplay {
         }
     }
 
-    pub fn render(&mut self, config: &Config, canvas: &mut Canvas<Window>) {
+    pub fn render(
+        &mut self,
+        config: &Config,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<(), sdl3::Error> {
         let snapshot = self.game.snapshot();
 
-        canvas.draw_grid(config.grid_scale, &self.game.grid);
-        canvas.draw_head(config.grid_scale, snapshot.head);
-        canvas.draw_body(config.grid_scale, snapshot.body);
-        canvas.draw_apple(config.grid_scale, snapshot.apple);
+        canvas.draw_grid(config.grid_scale, &self.game.grid)?;
+        canvas.draw_head(config.grid_scale, snapshot.head)?;
+        canvas.draw_body(config.grid_scale, snapshot.body)?;
+        canvas.draw_apple(config.grid_scale, snapshot.apple)?;
 
         if let GameplayState::Paused { icon } = &self.state {
             let grid_rect = FRect::new(
@@ -251,7 +259,7 @@ impl Gameplay {
             );
 
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
-            canvas.fill_rect(grid_rect).expect("Renders grid rect");
+            canvas.fill_rect(grid_rect)?;
 
             let window_width = (config.grid_width * config.grid_scale as u32) as i32;
             let window_height = (config.grid_height * config.grid_scale as u32) as i32;
@@ -265,9 +273,10 @@ impl Gameplay {
                     ),
                     (1, 1),
                 ),
-            )
-            .unwrap();
+            )?;
         }
+
+        Ok(())
     }
 }
 
@@ -292,7 +301,7 @@ impl HighResolutionCounter {
 }
 
 impl RenderTrait for Canvas<Window> {
-    fn draw_body(&mut self, scale: u8, body: &[Point]) {
+    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
         let rects: Vec<FRect> = body
             .iter()
             .map(|cell| {
@@ -305,10 +314,11 @@ impl RenderTrait for Canvas<Window> {
             })
             .collect();
         self.set_draw_color(Color::RGB(80, 80, 80));
-        self.fill_rects(&rects).expect("Rendering does not fail");
+        self.fill_rects(&rects)?;
+        Ok(())
     }
 
-    fn draw_head(&mut self, scale: u8, head: Point) {
+    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error> {
         let rect = FRect::new(
             head.0 as f32 * scale as f32,
             head.1 as f32 * scale as f32,
@@ -317,10 +327,11 @@ impl RenderTrait for Canvas<Window> {
         );
 
         self.set_draw_color(Color::RGB(80, 80, 80));
-        self.fill_rect(rect).expect("Rendering does not fail");
+        self.fill_rect(rect)?;
+        Ok(())
     }
 
-    fn draw_apple(&mut self, scale: u8, apple: Point) {
+    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error> {
         let rect = FRect::new(
             apple.0 as f32 * scale as f32,
             apple.1 as f32 * scale as f32,
@@ -328,17 +339,18 @@ impl RenderTrait for Canvas<Window> {
             scale as f32,
         );
         self.set_draw_color(Color::RGB(180, 80, 80));
-        self.fill_rect(rect).expect("Rendering does not fail");
+        self.fill_rect(rect)?;
+        Ok(())
     }
 
-    fn draw_grid(&mut self, scale: u8, grid: &Grid) {
+    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
         self.set_draw_color(Color::RGB(120, 120, 120));
         self.fill_rect(FRect::new(
             0f32,
             0f32,
             grid.width() as f32 * scale as f32,
             grid.height() as f32 * scale as f32,
-        ))
-        .unwrap();
+        ))?;
+        Ok(())
     }
 }
