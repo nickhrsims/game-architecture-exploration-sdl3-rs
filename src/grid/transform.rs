@@ -1,5 +1,6 @@
 use super::{Point, Rect, Scale};
 
+#[derive(Default, PartialEq, Copy, Clone, Debug)]
 pub struct Transform {
     origin: Point,
     scale: Scale,
