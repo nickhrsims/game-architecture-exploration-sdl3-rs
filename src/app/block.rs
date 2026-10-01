@@ -7,7 +7,6 @@ pub struct Block {
     pub rect: Rect,
     pub color: Color,
     pub style: BlockStyle,
-    pub children: Vec<Block>,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -17,17 +16,12 @@ pub enum BlockStyle {
 }
 
 impl Block {
-    pub fn from(children: Vec<Block>) -> Self {
+    pub fn new() -> Self {
         Self {
             rect: Rect::default(),
             color: Color::WHITE,
             style: BlockStyle::Outlined,
-            children,
         }
-    }
-
-    pub fn new() -> Self {
-        Self::from(Vec::new())
     }
 
     pub fn render(&self, canvas: &mut Canvas<Window>, parent: Rect) -> Result<(), Error> {
