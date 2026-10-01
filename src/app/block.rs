@@ -2,7 +2,7 @@ use sdl3::{Error, pixels::Color, render::Canvas, video::Window};
 
 use crate::grid::{Point, Rect, Scale, Size};
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone)]
 pub struct Block {
     pub rect: Rect,
     pub color: Color,
