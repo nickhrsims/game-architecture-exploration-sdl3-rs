@@ -19,7 +19,7 @@ impl Point {
         )
     }
 
-    pub fn scale<S: Into<Scale>>(&mut self, scale: S) {
+    pub fn scale(&mut self, scale: impl Into<Scale>) {
         let scale = scale.into();
 
         let w = (self.0 as f32 * scale.0) as i32;
@@ -84,13 +84,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn it_adds() {
+        let a = Point::new(1, 0);
+        let b = Point::new(0, 1);
+        let c = Point::new(1, 1);
+        assert!(a + b == c);
+    }
+
+    #[test]
+    fn it_subtracts() {
+        let a = Point::new(1, 0);
+        let b = Point::new(0, 1);
+        let c = Point::new(1, 1);
+        assert!(c - a == b);
+        assert!(c - b == a);
+    }
+
+    #[test]
     fn it_scales() {
         let mut point = Point::new(2, 2);
+
         point.scale((1, 1));
-        assert_eq!(point, Point::new(2, 2));
+        assert!(point == Point::new(2, 2));
+
         point.scale((2, 3));
-        assert_eq!(point, Point::new(4, 6));
+        assert!(point == Point::new(4, 6));
+
         point.scale((0.5, 0.5));
-        assert_eq!(point, Point::new(2, 3));
+        assert!(point == Point::new(2, 3));
     }
 }

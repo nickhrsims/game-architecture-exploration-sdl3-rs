@@ -1,14 +1,4 @@
-pub mod point;
-pub mod rect;
-pub mod scale;
-pub mod size;
-pub mod transform;
-
-pub use point::Point;
-pub use rect::Rect;
-pub use scale::Scale;
-pub use size::Size;
-pub use transform::Transform;
+use super::{Point, Size};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Grid {
@@ -60,31 +50,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn grid_contains() {
+    fn it_contains() {
         let grid = Grid::new(Size(16, 16));
         let inside = Point::new(4, 12);
         let outside = Point::new(-2, 6);
+
         assert!(grid.contains(inside));
         assert!(!grid.contains(outside));
-    }
-
-    #[test]
-    fn add_point_offset_normal() {
-        let point = Point::new(1, 0);
-        let offset = Point::SOUTH;
-        let result = point + offset;
-        eprintln!("{:?}", result);
-        assert_eq!(result, Point::new(1, 1));
-    }
-
-    #[test]
-    fn sub_point_from_point() {
-        let point_a = Point::new(3, 4);
-        let point_b = Point::new(4, 5);
-        assert_eq!(point_b, point_a + (point_b - point_a));
-
-        let point_c = Point::new(3, 4);
-        let point_d = Point::new(0, 0);
-        assert_eq!(point_d, point_c + (point_d - point_c))
     }
 }

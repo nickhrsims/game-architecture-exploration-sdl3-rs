@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::vec::Vec;
 
-use crate::grid::{Grid, Point};
+use crate::geom::{Grid, Point};
 
 pub struct Game {
     pub state: State,

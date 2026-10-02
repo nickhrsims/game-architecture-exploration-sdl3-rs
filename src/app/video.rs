@@ -1,5 +1,5 @@
 use crate::app::block::{Block, BlockStyle};
-use crate::grid::Size;
+use crate::geom::Size;
 
 // -------------------------------------------------------------
 // Semi-Public API

@@ -1,6 +1,6 @@
 use sdl3::pixels::Color;
 
-use crate::grid::{Point, Rect, Scale, Size, Transform};
+use crate::geom::{Point, Rect, Scale, Size, Transform};
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub struct Block {

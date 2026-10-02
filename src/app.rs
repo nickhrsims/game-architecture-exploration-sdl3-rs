@@ -14,7 +14,7 @@ use sdl3::video::Window;
 use std::process::exit;
 
 use crate::game;
-use crate::grid::{Grid, Point, Size, Transform};
+use crate::geom::{Grid, Point, Size, Transform};
 
 pub use block::Block;
 

@@ -1,6 +1,6 @@
 pub mod app;
 pub mod game;
-pub mod grid;
+pub mod geom;
 
 use app::App;
 use app::Config;
