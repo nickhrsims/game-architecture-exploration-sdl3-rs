@@ -15,11 +15,12 @@ impl Rect {
     }
 
     pub fn transform(&mut self, transform: Transform) {
-        transform.apply(self);
+        self.translate(transform.origin);
+        self.scale(transform.scale);
     }
 
     pub fn transformed(self, transform: Transform) -> Self {
-        transform.applied(self)
+        self.translated(transform.origin).scaled(transform.scale)
     }
 
     pub fn translated(&self, displacement: Point) -> Self {
