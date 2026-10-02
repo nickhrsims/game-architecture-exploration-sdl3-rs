@@ -65,6 +65,11 @@ impl Block {
         self
     }
 
+    pub fn transform(mut self, transform: Transform) -> Self {
+        self.rect.transform(transform);
+        self
+    }
+
     pub fn white(self) -> Self {
         self.colored(Color::WHITE)
     }
