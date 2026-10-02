@@ -2,8 +2,8 @@ use super::{Point, Rect, Scale};
 
 #[derive(Default, PartialEq, Copy, Clone, Debug)]
 pub struct Transform {
-    origin: Point,
-    scale: Scale,
+    pub origin: Point,
+    pub scale: Scale,
 }
 
 impl Transform {
@@ -14,11 +14,7 @@ impl Transform {
         }
     }
 
-    pub fn apply(&self, rect: &Rect) -> Rect {
-        rect.translated(self.origin).scaled(self.scale)
-    }
-
-    pub fn applied(&self, rect: Rect) -> Rect {
+    pub fn apply(&self, rect: Rect) -> Rect {
         rect.translated(self.origin).scaled(self.scale)
     }
 }
