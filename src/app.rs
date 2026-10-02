@@ -1,6 +1,8 @@
 pub mod block;
+pub mod event;
 pub mod icon;
 pub mod rect;
+pub mod video;
 
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
@@ -10,18 +12,21 @@ use sdl3::render::FRect;
 use sdl3::video::Window;
 
 use std::process::exit;
-use std::vec::Vec;
 
 use crate::game;
-use crate::grid::{Grid, Point, Rect, Size};
-use crate::platform;
+use crate::grid::{Grid, Point, Size, Transform};
 
 pub use block::Block;
 
 pub struct App {
-    config: Config,
     state: AppState,
-    platform: platform::Platform,
+    config: Config,
+    #[allow(unused)]
+    sdl: sdl3::Sdl,
+    #[allow(unused)]
+    ttf: sdl3::ttf::Sdl3TtfContext,
+    video: video::Video,
+    events: event::EventPump,
 }
 
 pub struct Config {
@@ -58,28 +63,35 @@ enum GameplayState {
     Ending,
 }
 
-trait RenderTrait {
-    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error>;
-    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error>;
-    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error>;
-    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error>;
-}
-
 impl App {
     pub fn new(config: Config) -> Self {
         let state = AppState::InGame(Gameplay {
             game: game::Game::new(Grid::new(Size::new(config.grid_width, config.grid_height))),
             state: GameplayState::Playing,
         });
-        let platform = platform::Platform::init(platform::Config {
-            window_title: config.name,
-            window_width: config.grid_width * config.grid_scale as u32,
-            window_height: config.grid_height * config.grid_scale as u32,
-        });
+
+        let sdl = sdl3::init().expect("SDL3 initializes");
+        let ttf = sdl3::ttf::init().expect("TTF subsystem initializes");
+        let video = video::configure()
+            .window(|w| w.title("Snake").size((640, 480)))
+            .rendering(|r| r.alpha_blending())
+            .build(&sdl)
+            .expect("Video initializes");
+
+        let events = event::EventPump::init(&sdl).expect("Event Pump initializes");
+
         Self {
-            config,
+            // Application + Game Boundary
             state,
-            platform,
+
+            // Application + World Boundary
+            config,
+
+            // Application + Platform Boundary
+            sdl,
+            ttf,
+            video,
+            events,
         }
     }
 
@@ -107,7 +119,7 @@ impl App {
     }
 
     fn handle_platform_events(&mut self) {
-        for event in self.platform.events.poll_iter() {
+        for event in self.events.iter() {
             match event {
                 Event::Quit { .. }
                 | Event::KeyDown {
@@ -153,15 +165,15 @@ impl App {
     }
 
     fn render(&mut self) -> Result<(), sdl3::Error> {
-        self.platform.canvas.set_draw_color(Color::BLACK);
-        self.platform.canvas.clear();
+        self.video.canvas.set_draw_color(Color::BLACK);
+        self.video.canvas.clear();
         match self.state {
             AppState::Exiting(_) => {}
             AppState::InGame(ref mut session) => {
-                session.render(&self.config, &mut self.platform.canvas)?;
+                session.render(&self.config, &mut self.video)?;
             }
         }
-        self.platform.canvas.present();
+        self.video.canvas.present();
         Ok(())
     }
 }
@@ -238,17 +250,13 @@ impl Gameplay {
         }
     }
 
-    pub fn render(
-        &mut self,
-        config: &Config,
-        canvas: &mut Canvas<Window>,
-    ) -> Result<(), sdl3::Error> {
+    pub fn render(&mut self, config: &Config, video: &mut video::Video) -> Result<(), sdl3::Error> {
         let snapshot = self.game.snapshot();
 
-        canvas.draw_grid(config.grid_scale, &self.game.grid)?;
-        canvas.draw_head(config.grid_scale, snapshot.head)?;
-        canvas.draw_body(config.grid_scale, snapshot.body)?;
-        canvas.draw_apple(config.grid_scale, snapshot.apple)?;
+        video.canvas.draw_grid(config.grid_scale, &self.game.grid)?;
+        video.canvas.draw_head(config.grid_scale, snapshot.head)?;
+        video.canvas.draw_body(config.grid_scale, snapshot.body)?;
+        video.canvas.draw_apple(config.grid_scale, snapshot.apple)?;
 
         if let GameplayState::Paused { icon } = &self.state {
             let grid_rect = FRect::new(
@@ -258,22 +266,20 @@ impl Gameplay {
                 config.grid_height as f32 * config.grid_scale as f32,
             );
 
-            canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
-            canvas.fill_rect(grid_rect)?;
+            video.canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
+            video.canvas.fill_rect(grid_rect)?;
 
             let window_width = (config.grid_width * config.grid_scale as u32) as i32;
             let window_height = (config.grid_height * config.grid_scale as u32) as i32;
 
-            icon.render(
-                canvas,
-                Rect::new(
-                    (
-                        window_width - (config.grid_scale as i32 * 2),
-                        window_height - (config.grid_scale as i32 * 2),
-                    ),
-                    (1, 1),
-                ),
-            )?;
+            let grid_transform = Transform::from(Point(
+                window_width - (config.grid_scale as i32 * 2),
+                window_height - (config.grid_scale as i32 * 2),
+            ));
+
+            icon.blocks()
+                .map(|block| block.transform(grid_transform))
+                .try_for_each(|block| video.draw_block(&block))?;
         }
 
         Ok(())
@@ -300,7 +306,14 @@ impl HighResolutionCounter {
     }
 }
 
-impl RenderTrait for Canvas<Window> {
+trait AppCanvas {
+    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error>;
+    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error>;
+    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error>;
+    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error>;
+}
+
+impl AppCanvas for Canvas<Window> {
     fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
         let rects: Vec<FRect> = body
             .iter()

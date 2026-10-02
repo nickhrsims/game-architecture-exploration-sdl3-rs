@@ -1,13 +1,8 @@
-use sdl3::{Error, render::Canvas, video::Window};
-
-use crate::grid::Rect;
-
 use super::super::Block;
 
 #[derive(PartialEq)]
 pub struct Pause {
-    left: Block,
-    right: Block,
+    blocks: [Block; 2],
 }
 
 impl Pause {
@@ -26,13 +21,13 @@ impl Pause {
             .size((1, 4))
             .scale((8, 10));
 
-        Self { left, right }
+        Self {
+            blocks: [left, right],
+        }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, parent: Rect) -> Result<(), Error> {
-        self.left.render(canvas, parent)?;
-        self.right.render(canvas, parent)?;
-        Ok(())
+    pub fn blocks(&self) -> impl Iterator<Item = Block> {
+        self.blocks.iter().copied()
     }
 }
 

@@ -1,7 +1,6 @@
 pub mod app;
 pub mod game;
 pub mod grid;
-pub mod platform;
 
 use app::App;
 use app::Config;
