@@ -1,4 +1,4 @@
-use super::{Point, Scale, Size};
+use super::{Point, Scale, Size, Transform};
 
 #[derive(Default, Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Rect {
@@ -12,6 +12,14 @@ impl Rect {
             position: position.into(),
             size: size.into(),
         }
+    }
+
+    pub fn transform(&mut self, transform: Transform) {
+        transform.apply(self);
+    }
+
+    pub fn transformed(self, transform: Transform) -> Self {
+        transform.applied(self)
     }
 
     pub fn translated(&self, displacement: Point) -> Self {
