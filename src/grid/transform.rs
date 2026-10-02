@@ -17,6 +17,10 @@ impl Transform {
     pub fn apply(&self, rect: &Rect) -> Rect {
         rect.translated(self.origin).scaled(self.scale)
     }
+
+    pub fn applied(&self, rect: Rect) -> Rect {
+        rect.translated(self.origin).scaled(self.scale)
+    }
 }
 
 impl From<Point> for Transform {
