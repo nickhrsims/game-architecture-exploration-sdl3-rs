@@ -10,6 +10,7 @@ use crate::grid::Size;
 // -----------------------------
 
 /// Create a builder object for the Video System.
+#[allow(unused)]
 pub(super) fn configure() -> VideoBuilder {
     VideoBuilder::new()
 }
@@ -42,6 +43,7 @@ pub(super) struct RenderConfigBuilder {
 // Public API Impl
 // -----------------------------
 
+#[allow(unused)]
 impl Video {
     fn init(sdl: &sdl3::Sdl, config: Config) -> Result<Self, sdl3::video::WindowBuildError> {
         let sdl_video = sdl.video().expect("SDL3 Video Subsystem initializes");
@@ -73,6 +75,7 @@ impl Video {
     }
 }
 
+#[allow(unused)]
 impl VideoBuilder {
     fn new() -> Self {
         Self {
@@ -102,6 +105,7 @@ impl VideoBuilder {
     }
 }
 
+#[allow(unused)]
 impl WindowConfigBuilder {
     pub(super) fn title(mut self, title: impl Into<String>) -> Self {
         self.config.title = title.into();
@@ -114,6 +118,7 @@ impl WindowConfigBuilder {
     }
 }
 
+#[allow(unused)]
 impl RenderConfigBuilder {
     // -- Blend Mode
 
