@@ -1,6 +1,6 @@
-use sdl3::{Error, pixels::Color, render::Canvas, video::Window};
+use sdl3::pixels::Color;
 
-use crate::grid::{Point, Rect, Scale, Size};
+use crate::grid::{Point, Rect, Scale, Size, Transform};
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub struct Block {
@@ -21,15 +21,6 @@ impl Block {
             rect: Rect::default(),
             color: Color::WHITE,
             style: BlockStyle::Outlined,
-        }
-    }
-
-    pub fn render(&self, canvas: &mut Canvas<Window>, parent: Rect) -> Result<(), Error> {
-        canvas.set_draw_color(self.color);
-        let rect = self.rect.translated(parent.position);
-        match self.style {
-            BlockStyle::Outlined => canvas.draw_rect(rect),
-            BlockStyle::Filled => canvas.fill_rect(rect),
         }
     }
 
