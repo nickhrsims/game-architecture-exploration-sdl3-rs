@@ -14,7 +14,7 @@ impl Transform {
         }
     }
 
-    pub fn apply(&self, rect: Rect) -> Rect {
+    pub fn rect(&self, rect: Rect) -> Rect {
         rect.translated(self.origin).scaled(self.scale)
     }
 }
