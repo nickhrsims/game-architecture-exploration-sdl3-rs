@@ -1,8 +1,18 @@
-pub mod block;
-pub mod event;
-pub mod icon;
-pub mod rect;
-pub mod video;
+// -------------------------------------------------------------
+// Modules
+// -------------------------------------------------------------
+
+mod block;
+mod event;
+mod icon;
+mod rect;
+mod video;
+
+// -------------------------------------------------------------
+// Imports
+// -------------------------------------------------------------
+
+// -- SDL3
 
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
@@ -11,13 +21,30 @@ use sdl3::render::Canvas;
 use sdl3::render::FRect;
 use sdl3::video::Window;
 
+// -- Standard Library
+
 use std::process::exit;
+
+// -- Crate
 
 use crate::game;
 use crate::geom::{Grid, Point, Size, Transform};
 
-pub use block::Block;
+// -- Local
 
+use block::Block;
+
+// -------------------------------------------------------------
+// Type Aliases
+// -------------------------------------------------------------
+
+type Error = Box<dyn std::error::Error>;
+
+// -------------------------------------------------------------
+// Application
+// -------------------------------------------------------------
+
+/// Application API root.
 pub struct App {
     state: AppState,
     config: Config,
@@ -29,58 +56,27 @@ pub struct App {
     events: event::EventPump,
 }
 
-pub struct Config {
-    pub name: &'static str,
-
-    pub fps: u8,
-
-    pub grid_width: u32,
-    pub grid_height: u32,
-    pub grid_scale: u8,
-}
-
-struct Gameplay {
-    game: game::Game,
-    state: GameplayState,
-}
-
-struct ExitStatus {
-    code: i32,
-    msg: &'static str,
-}
-
-struct HighResolutionCounter(u64, u64);
-
-enum AppState {
-    InGame(Gameplay),
-    Exiting(ExitStatus),
-}
-
-#[derive(PartialEq)]
-enum GameplayState {
-    Playing,
-    Paused { icon: icon::Pause },
-    Ending,
-}
+// -----------------------------
+// App :: Public API
+// -----------------------------
 
 impl App {
-    pub fn new(config: Config) -> Self {
+    pub fn init(config: Config) -> Result<Self, Error> {
         let state = AppState::InGame(Gameplay {
             game: game::Game::new(Grid::new(Size::new(config.grid_width, config.grid_height))),
             state: GameplayState::Playing,
         });
 
-        let sdl = sdl3::init().expect("SDL3 initializes");
-        let ttf = sdl3::ttf::init().expect("TTF subsystem initializes");
+        let sdl = sdl3::init()?;
+        let ttf = sdl3::ttf::init()?;
         let video = video::configure()
             .window(|w| w.title("Snake").size((640, 480)))
             .rendering(|r| r.alpha_blending())
-            .build(&sdl)
-            .expect("Video initializes");
+            .build(&sdl)?;
 
-        let events = event::EventPump::init(&sdl).expect("Event Pump initializes");
+        let events = event::EventPump::init(&sdl)?;
 
-        Self {
+        Ok(Self {
             // Application + Game Boundary
             state,
 
@@ -92,7 +88,7 @@ impl App {
             ttf,
             video,
             events,
-        }
+        })
     }
 
     pub fn run(&mut self) {
@@ -117,7 +113,13 @@ impl App {
             ));
         }
     }
+}
 
+// -----------------------------
+// App :: Private Impl
+// -----------------------------
+
+impl App {
     fn handle_platform_events(&mut self) {
         for event in self.events.iter() {
             match event {
@@ -164,7 +166,7 @@ impl App {
         }
     }
 
-    fn render(&mut self) -> Result<(), sdl3::Error> {
+    fn render(&mut self) -> Result<(), Error> {
         self.video.canvas.set_draw_color(Color::BLACK);
         self.video.canvas.clear();
         match self.state {
@@ -178,8 +180,48 @@ impl App {
     }
 }
 
+/// Top-level Application configuration.
+pub struct Config {
+    pub name: &'static str,
+
+    pub fps: u8,
+
+    pub grid_width: u32,
+    pub grid_height: u32,
+    pub grid_scale: u8,
+}
+
+// -------------------------------------------------------------
+// Application FSM
+// -------------------------------------------------------------
+
+// -----------------------------
+// Root FSM
+// -----------------------------
+
+enum AppState {
+    InGame(Gameplay),
+    Exiting(ExitStatus),
+}
+
+// -----------------------------
+// InGame
+// -----------------------------
+
+struct Gameplay {
+    game: game::Game,
+    state: GameplayState,
+}
+
+#[derive(PartialEq)]
+enum GameplayState {
+    Playing,
+    Paused { icon: icon::Pause },
+    Ending,
+}
+
 impl Gameplay {
-    pub fn handle_platform_event(&mut self, event: &sdl3::event::Event) {
+    fn handle_platform_event(&mut self, event: &sdl3::event::Event) {
         match self.state {
             GameplayState::Playing => {
                 let game = &mut self.game;
@@ -232,7 +274,7 @@ impl Gameplay {
         }
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         // imm borrow happens here;
         // transition likely to become odd later.
         let state = &self.state;
@@ -250,7 +292,7 @@ impl Gameplay {
         }
     }
 
-    pub fn render(&mut self, config: &Config, video: &mut video::Video) -> Result<(), sdl3::Error> {
+    fn render(&mut self, config: &Config, video: &mut video::Video) -> Result<(), Error> {
         let snapshot = self.game.snapshot();
 
         video.canvas.draw_grid(config.grid_scale, &self.game.grid)?;
@@ -286,6 +328,25 @@ impl Gameplay {
     }
 }
 
+// -----------------------------
+// Exiting
+// -----------------------------
+
+struct ExitStatus {
+    code: i32,
+    msg: &'static str,
+}
+
+// -------------------------------------------------------------
+// Supporting Machinery
+// -------------------------------------------------------------
+
+// -----------------------------
+// Timing
+// -----------------------------
+
+struct HighResolutionCounter(u64, u64);
+
 impl HighResolutionCounter {
     fn new() -> Self {
         Self(0, 0)
@@ -305,6 +366,10 @@ impl HighResolutionCounter {
             .expect("High resolution counter difference nanosecond-scaled fits into u32")
     }
 }
+
+// -----------------------------
+// Rendering
+// -----------------------------
 
 trait AppCanvas {
     fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error>;
