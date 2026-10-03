@@ -182,7 +182,7 @@ impl RenderConfigBuilder {
 // -------------------------------------------------------------
 
 // -----------------------------
-// Config + Builder Structs
+// Config Structs
 // -----------------------------
 
 #[derive(Default, PartialEq, Debug)]
