@@ -1,12 +1,22 @@
+// -------------------------------------------------------------
+// Imports
+// -------------------------------------------------------------
+
 use crate::app::block::{Block, BlockStyle};
 use crate::geom::Size;
 
 // -------------------------------------------------------------
-// Semi-Public API
+// Type Aliases
+// -------------------------------------------------------------
+
+type Error = Box<dyn std::error::Error>;
+
+// -------------------------------------------------------------
+// Primary :: Video
 // -------------------------------------------------------------
 
 // -----------------------------
-// Entry Function
+// Entry-Point
 // -----------------------------
 
 /// Create a builder object for the Video System.
@@ -16,38 +26,37 @@ pub(super) fn configure() -> VideoBuilder {
 }
 
 // -----------------------------
-// Public Structs
+// Video :: Public API
 // -----------------------------
 
 /// Abstraction over Window & Rendering facilities.
 pub(super) struct Video {
-    pub(super) canvas: sdl3::render::Canvas<sdl3::video::Window>,
+    pub(super) canvas: sdl3::render::WindowCanvas,
 }
 
-pub(super) struct VideoBuilder {
-    window: WindowConfigBuilder,
-    render: RenderConfigBuilder,
-}
-
-#[derive(Default)]
-pub(super) struct WindowConfigBuilder {
-    config: WindowConfig,
-}
-
-#[derive(Default)]
-pub(super) struct RenderConfigBuilder {
-    config: RenderConfig,
-}
-
-// -----------------------------
-// Public API Impl
-// -----------------------------
-
-#[allow(unused)]
 impl Video {
-    fn init(sdl: &sdl3::Sdl, config: Config) -> Result<Self, sdl3::video::WindowBuildError> {
-        let sdl_video = sdl.video().expect("SDL3 Video Subsystem initializes");
-        let sdl_window = sdl_video
+    pub(super) fn draw_block(&mut self, block: &Block) -> Result<(), Error> {
+        let canvas = &mut self.canvas;
+        canvas.set_draw_color(block.color);
+        match block.style {
+            BlockStyle::Outlined => canvas.draw_rect(block.rect)?,
+            BlockStyle::Filled => canvas.fill_rect(block.rect)?,
+        }
+        Ok(())
+    }
+}
+
+// -----------------------------
+// Video :: Internals
+// -----------------------------
+
+impl Video {
+    fn init(sdl: &sdl3::Sdl, config: Config) -> Result<Self, Error> {
+        // SDL3 Video Subsystem
+        let video = sdl.video()?;
+
+        // SDL3 Window
+        let window = video
             .window(
                 config.window.title.as_str(),
                 config.window.size.0,
@@ -57,22 +66,25 @@ impl Video {
             .position_centered()
             .build()?;
 
-        let mut sdl_canvas: sdl3::render::Canvas<sdl3::video::Window> = sdl_window.into_canvas();
+        // SDL3 Canvas
+        let mut canvas: sdl3::render::WindowCanvas = window.into_canvas();
+        canvas.set_blend_mode(config.render.blend_mode);
 
-        sdl_canvas.set_blend_mode(config.render.blend_mode);
-
-        Ok(Self { canvas: sdl_canvas })
+        Ok(Self { canvas })
     }
+}
 
-    pub(super) fn draw_block(&mut self, block: &Block) -> Result<(), sdl3::Error> {
-        let canvas = &mut self.canvas;
-        canvas.set_draw_color(block.color);
-        match block.style {
-            BlockStyle::Outlined => canvas.draw_rect(block.rect)?,
-            BlockStyle::Filled => canvas.fill_rect(block.rect)?,
-        }
-        Ok(())
-    }
+// -------------------------------------------------------------
+// Secondary :: Video Builder
+// -------------------------------------------------------------
+
+// -----------------------------
+// Root Builder
+// -----------------------------
+
+pub(super) struct VideoBuilder {
+    window: WindowConfigBuilder,
+    render: RenderConfigBuilder,
 }
 
 #[allow(unused)]
@@ -84,7 +96,7 @@ impl VideoBuilder {
         }
     }
 
-    pub(super) fn build(self, sdl: &sdl3::Sdl) -> Result<Video, sdl3::video::WindowBuildError> {
+    pub(super) fn build(self, sdl: &sdl3::Sdl) -> Result<Video, Error> {
         Video::init(sdl, Config::from(self))
     }
 
@@ -105,6 +117,15 @@ impl VideoBuilder {
     }
 }
 
+// -----------------------------
+// Window Config Sub-Builder
+// -----------------------------
+
+#[derive(Default)]
+pub(super) struct WindowConfigBuilder {
+    config: WindowConfig,
+}
+
 #[allow(unused)]
 impl WindowConfigBuilder {
     pub(super) fn title(mut self, title: impl Into<String>) -> Self {
@@ -116,6 +137,14 @@ impl WindowConfigBuilder {
         self.config.size = size.into();
         self
     }
+}
+// -----------------------------
+// Render Config Sub-Builder
+// -----------------------------
+
+#[derive(Default)]
+pub(super) struct RenderConfigBuilder {
+    config: RenderConfig,
 }
 
 #[allow(unused)]
@@ -149,7 +178,7 @@ impl RenderConfigBuilder {
 }
 
 // -------------------------------------------------------------
-// Internal Structs
+// Internal :: Configuration Structs
 // -------------------------------------------------------------
 
 // -----------------------------
@@ -162,22 +191,6 @@ struct Config {
     render: RenderConfig,
 }
 
-/// A snapshot of the latest SDL3 Window information.
-#[derive(PartialEq, Debug)]
-struct WindowConfig {
-    title: String,
-    size: Size,
-}
-
-#[derive(PartialEq, Debug)]
-struct RenderConfig {
-    blend_mode: sdl3::render::BlendMode,
-}
-
-// -------------------------------------------------------------
-// Trait Implementations
-// -------------------------------------------------------------
-
 impl From<VideoBuilder> for Config {
     fn from(value: VideoBuilder) -> Self {
         Self {
@@ -187,6 +200,13 @@ impl From<VideoBuilder> for Config {
     }
 }
 
+/// A snapshot of the latest SDL3 Window information.
+#[derive(PartialEq, Debug)]
+struct WindowConfig {
+    title: String,
+    size: Size,
+}
+
 impl Default for WindowConfig {
     fn default() -> Self {
         Self {
@@ -194,6 +214,11 @@ impl Default for WindowConfig {
             size: Size::new(320, 240),
         }
     }
+}
+
+#[derive(PartialEq, Debug)]
+struct RenderConfig {
+    blend_mode: sdl3::render::BlendMode,
 }
 
 impl Default for RenderConfig {
