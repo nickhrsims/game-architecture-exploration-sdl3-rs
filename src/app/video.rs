@@ -96,7 +96,7 @@ impl VideoBuilder {
         }
     }
 
-    pub(super) fn build(self, sdl: &sdl3::Sdl) -> Result<Video, Error> {
+    pub(super) fn build<'ttf>(self, sdl: &sdl3::Sdl) -> Result<Video<'ttf>, Error> {
         Video::init(sdl, Config::from(self))
     }
 
