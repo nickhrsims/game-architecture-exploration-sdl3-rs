@@ -29,7 +29,7 @@ use std::process::exit;
 // -- Crate
 
 use crate::game;
-use crate::geom::{Grid, Point, Size, Transform};
+use crate::geom::{Grid, Point, Size};
 
 // -- Local
 
