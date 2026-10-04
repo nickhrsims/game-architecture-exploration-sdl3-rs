@@ -80,6 +80,24 @@ impl std::ops::Sub for Point {
     }
 }
 
+impl std::ops::Div for Point {
+    type Output = Point;
+    fn div(self, rhs: Self) -> Point {
+        let r0 = self.0 / rhs.0;
+        let r1 = self.1 / rhs.1;
+        Point(r0, r1)
+    }
+}
+
+impl std::ops::Div<i32> for Point {
+    type Output = Point;
+    fn div(self, rhs: i32) -> Point {
+        let r0 = self.0 / rhs;
+        let r1 = self.1 / rhs;
+        Point(r0, r1)
+    }
+}
+
 impl<X: Into<i32>, Y: Into<i32>> From<(X, Y)> for Point {
     fn from(value: (X, Y)) -> Self {
         let (x, y) = value;
