@@ -1,4 +1,4 @@
-use super::Scale;
+use super::{Scale, Size};
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Point(pub i32, pub i32);
@@ -76,6 +76,13 @@ impl<X: Into<i32>, Y: Into<i32>> From<(X, Y)> for Point {
     fn from(value: (X, Y)) -> Self {
         let (x, y) = value;
         Self::new(x, y)
+    }
+}
+
+impl TryFrom<Size> for Point {
+    type Error = <u32 as TryInto<i32>>::Error;
+    fn try_from(size: Size) -> Result<Self, Self::Error> {
+        Ok(Point(size.0.try_into()?, size.1.try_into()?))
     }
 }
 
