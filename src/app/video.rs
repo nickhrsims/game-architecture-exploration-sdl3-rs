@@ -2,8 +2,14 @@
 // Imports
 // -------------------------------------------------------------
 
-use crate::app::block::{Block, BlockStyle};
-use crate::geom::Size;
+// -- Crate
+
+use crate::geom::{Point, Size};
+
+// -- Sibling
+
+use super::block::{Block, BlockStyle};
+use super::text;
 
 // -------------------------------------------------------------
 // Type Aliases
@@ -30,11 +36,12 @@ pub(super) fn configure() -> VideoBuilder {
 // -----------------------------
 
 /// Abstraction over Window & Rendering facilities.
-pub(super) struct Video {
+pub(super) struct Video<'ttf> {
     pub(super) canvas: sdl3::render::WindowCanvas,
+    text: text::TextSystem<'ttf>,
 }
 
-impl Video {
+impl Video<'_> {
     pub(super) fn draw_block(&mut self, block: &Block) -> Result<(), Error> {
         let canvas = &mut self.canvas;
         canvas.set_draw_color(block.color);
@@ -44,13 +51,23 @@ impl Video {
         }
         Ok(())
     }
+
+    pub(super) fn draw_text(&mut self, text: &text::Text) -> Result<(), Error> {
+        let ttf_text = self.text.resolve(&text.msg, text.font, text.pt)?;
+        let size: Size = ttf_text.size().into();
+        let position = text.position - text.anchor.offset(size);
+
+        self.canvas.set_draw_color(text.color);
+        ttf_text.draw(position.0 as f32, position.1 as f32)?;
+        Ok(())
+    }
 }
 
 // -----------------------------
 // Video :: Internals
 // -----------------------------
 
-impl Video {
+impl Video<'_> {
     fn init(sdl: &sdl3::Sdl, config: Config) -> Result<Self, Error> {
         // SDL3 Video Subsystem
         let video = sdl.video()?;
@@ -70,7 +87,9 @@ impl Video {
         let mut canvas: sdl3::render::WindowCanvas = window.into_canvas();
         canvas.set_blend_mode(config.render.blend_mode);
 
-        Ok(Self { canvas })
+        let text = text::TextSystem::init(&canvas.texture_creator(), "./data/font")?;
+
+        Ok(Self { canvas, text })
     }
 }
 

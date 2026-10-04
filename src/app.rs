@@ -6,6 +6,7 @@ mod block;
 mod event;
 mod icon;
 mod rect;
+mod text;
 mod video;
 
 // -------------------------------------------------------------
@@ -33,6 +34,7 @@ use crate::geom::{Grid, Point, Size, Transform};
 // -- Local
 
 use block::Block;
+use text::Text;
 
 // -------------------------------------------------------------
 // Type Aliases
@@ -45,14 +47,12 @@ type Error = Box<dyn std::error::Error>;
 // -------------------------------------------------------------
 
 /// Application API root.
-pub struct App {
+pub struct App<'ttf> {
     state: AppState,
     config: Config,
     #[allow(unused)]
     sdl: sdl3::Sdl,
-    #[allow(unused)]
-    ttf: sdl3::ttf::Sdl3TtfContext,
-    video: video::Video,
+    video: video::Video<'ttf>,
     events: event::EventPump,
 }
 
@@ -60,7 +60,7 @@ pub struct App {
 // App :: Public API
 // -----------------------------
 
-impl App {
+impl App<'_> {
     pub fn init(config: Config) -> Result<Self, Error> {
         let state = AppState::InGame(Gameplay {
             game: game::Game::new(Grid::new(Size::new(config.grid_width, config.grid_height))),
@@ -68,7 +68,7 @@ impl App {
         });
 
         let sdl = sdl3::init()?;
-        let ttf = sdl3::ttf::init()?;
+
         let video = video::configure()
             .window(|w| w.title("Snake").size((640, 480)))
             .rendering(|r| r.alpha_blending())
@@ -85,7 +85,6 @@ impl App {
 
             // Application + Platform Boundary
             sdl,
-            ttf,
             video,
             events,
         })
@@ -119,7 +118,7 @@ impl App {
 // App :: Private Impl
 // -----------------------------
 
-impl App {
+impl App<'_> {
     fn handle_platform_events(&mut self) {
         for event in self.events.iter() {
             match event {
@@ -216,7 +215,7 @@ struct Gameplay {
 #[derive(PartialEq)]
 enum GameplayState {
     Playing,
-    Paused { icon: icon::Pause },
+    Paused { icon: icon::Pause, text: text::Text },
     Ending,
 }
 
@@ -248,6 +247,14 @@ impl Gameplay {
                     } => {
                         self.state = GameplayState::Paused {
                             icon: icon::Pause::new(),
+                            text: Text::new(
+                                String::from("Paused"),
+                                text::FontId::CALIPER,
+                                (0, 0),
+                                32,
+                                text::Anchor::Center,
+                                Color::WHITE,
+                            ),
                         }
                     }
 
@@ -300,7 +307,7 @@ impl Gameplay {
         video.canvas.draw_body(config.grid_scale, snapshot.body)?;
         video.canvas.draw_apple(config.grid_scale, snapshot.apple)?;
 
-        if let GameplayState::Paused { icon } = &self.state {
+        if let GameplayState::Paused { icon, text } = &self.state {
             let grid_rect = FRect::new(
                 0f32,
                 0f32,
@@ -314,14 +321,15 @@ impl Gameplay {
             let window_width = (config.grid_width * config.grid_scale as u32) as i32;
             let window_height = (config.grid_height * config.grid_scale as u32) as i32;
 
-            let grid_transform = Transform::from(Point(
-                window_width - (config.grid_scale as i32 * 2),
-                window_height - (config.grid_scale as i32 * 2),
-            ));
+            let center = Point(window_width, window_height) / 2;
+            let above_center = center - (0, 32).into();
+            let below_center = center + (0, 32).into();
 
             icon.blocks()
-                .map(|block| block.transform(grid_transform))
+                .map(|block| block.displace(below_center))
                 .try_for_each(|block| video.draw_block(&block))?;
+
+            video.draw_text(&text.translated(above_center))?;
         }
 
         Ok(())
