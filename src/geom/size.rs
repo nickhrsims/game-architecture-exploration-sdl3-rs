@@ -77,6 +77,16 @@ impl std::ops::Sub for Size {
     }
 }
 
+impl<T: Into<u32>> std::ops::Div<T> for Size {
+    type Output = Size;
+    fn div(self, rhs: T) -> Size {
+        let d = rhs.into();
+        let r0 = self.0 / d;
+        let r1 = self.1 / d;
+        Size(r0, r1)
+    }
+}
+
 impl From<(u32, u32)> for Size {
     fn from(value: (u32, u32)) -> Self {
         let (w, h) = value;
