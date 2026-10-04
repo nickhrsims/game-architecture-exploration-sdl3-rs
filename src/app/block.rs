@@ -34,7 +34,7 @@ impl Block {
         self
     }
 
-    pub fn displace<T: Into<Point>>(mut self, displacement: T) -> Self {
+    pub fn translate<T: Into<Point>>(mut self, displacement: T) -> Self {
         self.rect.translate(displacement.into());
         self
     }
