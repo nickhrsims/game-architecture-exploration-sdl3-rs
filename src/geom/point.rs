@@ -28,6 +28,14 @@ impl Point {
         self.0 = w;
         self.1 = h;
     }
+
+    pub fn with_x(&self, x: i32) -> Self {
+        Point(x, self.1)
+    }
+
+    pub fn with_y(&self, y: i32) -> Self {
+        Point(self.0, y)
+    }
 }
 
 impl std::ops::Add<Point> for Point {
