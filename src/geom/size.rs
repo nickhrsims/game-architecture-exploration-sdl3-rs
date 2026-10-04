@@ -84,6 +84,12 @@ impl From<(u32, u32)> for Size {
     }
 }
 
+impl From<Size> for (u32, u32) {
+    fn from(size: Size) -> Self {
+        (size.0, size.1)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
