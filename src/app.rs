@@ -329,7 +329,7 @@ impl Gameplay {
                 .map(|block| block.translate(below_center))
                 .try_for_each(|block| video.draw_block(&block))?;
 
-            video.draw_text(&text.translated(above_center))?;
+            //video.draw_text(&text.translated(above_center))?;
         }
 
         Ok(())
