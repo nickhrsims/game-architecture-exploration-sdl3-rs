@@ -29,3 +29,15 @@ impl From<(i32, i32)> for Scale {
         Self::new(w as f32, h as f32)
     }
 }
+
+impl From<f32> for Scale {
+    fn from(value: f32) -> Self {
+        Self::new(value, value)
+    }
+}
+
+impl From<i32> for Scale {
+    fn from(value: i32) -> Self {
+        Self::new(value as f32, value as f32)
+    }
+}
