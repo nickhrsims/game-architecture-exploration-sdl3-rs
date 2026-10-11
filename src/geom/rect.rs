@@ -30,7 +30,7 @@ impl Rect {
         }
     }
 
-    pub fn scaled(&self, scale: Scale) -> Self {
+    pub fn scaled(&self, scale: impl Into<Scale>) -> Self {
         Self {
             position: self.position,
             size: self.size.scaled(scale),
