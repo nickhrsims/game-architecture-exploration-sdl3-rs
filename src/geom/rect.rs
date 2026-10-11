@@ -45,3 +45,9 @@ impl Rect {
         self.size.scale(scale);
     }
 }
+
+impl From<Point> for Rect {
+    fn from(position: Point) -> Self {
+        Self::new(position, (1, 1))
+    }
+}
