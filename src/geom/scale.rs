@@ -36,8 +36,32 @@ impl From<f32> for Scale {
     }
 }
 
+impl From<i8> for Scale {
+    fn from(value: i8) -> Self {
+        Self::new(value as f32, value as f32)
+    }
+}
+
+impl From<i16> for Scale {
+    fn from(value: i16) -> Self {
+        Self::new(value as f32, value as f32)
+    }
+}
+
 impl From<i32> for Scale {
     fn from(value: i32) -> Self {
+        Self::new(value as f32, value as f32)
+    }
+}
+
+impl From<u8> for Scale {
+    fn from(value: u8) -> Self {
+        Self::new(value as f32, value as f32)
+    }
+}
+
+impl From<u16> for Scale {
+    fn from(value: u16) -> Self {
         Self::new(value as f32, value as f32)
     }
 }
