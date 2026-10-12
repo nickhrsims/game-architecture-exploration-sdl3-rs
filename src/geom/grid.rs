@@ -10,6 +10,10 @@ impl Grid {
         Self { size }
     }
 
+    pub fn size(&self) -> Size {
+        self.size
+    }
+
     pub fn width(&self) -> u32 {
         self.size.0
     }
