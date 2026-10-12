@@ -42,8 +42,8 @@ enum Direction {
 
 impl Game {
     pub fn new(grid: Grid) -> Self {
-        if grid.width() < 16 || grid.height() < 16 {
-            panic!("Grid width and height must each be at least 16");
+        if grid.width() < 10 || grid.height() < 10 {
+            panic!("Grid width and height must each be at least 10");
         }
 
         let state = State::Playing;

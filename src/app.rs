@@ -1,26 +1,12 @@
-// -------------------------------------------------------------
-// Modules
-// -------------------------------------------------------------
-
-mod block;
-mod event;
-mod icon;
-mod rect;
-mod text;
-mod video;
-
-// -------------------------------------------------------------
-// Imports
-// -------------------------------------------------------------
+// -----------------------------------------------------------------------------
+//                                                                       Imports
+// -----------------------------------------------------------------------------
 
 // -- SDL3
 
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
 use sdl3::pixels::Color;
-use sdl3::render::Canvas;
-use sdl3::render::FRect;
-use sdl3::video::Window;
 
 // -- Standard Library
 
@@ -29,157 +15,74 @@ use std::process::exit;
 // -- Crate
 
 use crate::game;
-use crate::geom::{Grid, Point, Size};
 
-// -- Local
+use crate::geom::{Anchor, Grid, Point, Rect, Size};
+use crate::platform::text::FontId;
+use crate::platform::{DisplayCommands, Platform};
 
-use block::Block;
-use text::Text;
+// -----------------------------------------------------------------------------
+//                                                                  Type Aliases
+// -----------------------------------------------------------------------------
 
-// -------------------------------------------------------------
-// Type Aliases
-// -------------------------------------------------------------
+type AnyError = Box<dyn std::error::Error>;
 
-type Error = Box<dyn std::error::Error>;
+// -----------------------------------------------------------------------------
+//                                                                     Constants
+// -----------------------------------------------------------------------------
 
-// -------------------------------------------------------------
-// Application
-// -------------------------------------------------------------
+const FONT_CALIPER_ID: FontId = FontId("caliper");
+const FONT_CALIPER_PATH: &str = "./data/font/caliper.ttf";
+
+// -----------------------------------------------------------------------------
+//                                                         Application :: Public
+// -----------------------------------------------------------------------------
 
 /// Application API root.
-pub struct App<'ttf> {
-    state: AppState,
+pub struct App {
+    state: Mode,
     config: Config,
-    #[allow(unused)]
-    sdl: sdl3::Sdl,
-    video: video::Video<'ttf>,
-    events: event::EventPump,
+    platform: Platform,
 }
 
-// -----------------------------
-// App :: Public API
-// -----------------------------
-
-impl App<'_> {
-    pub fn init(config: Config) -> Result<Self, Error> {
-        let state = AppState::InGame(Gameplay {
+impl App {
+    pub fn init(config: Config) -> Result<Self, AnyError> {
+        let state = Mode::InGame(Gameplay {
             game: game::Game::new(Grid::new(Size::new(config.grid_width, config.grid_height))),
             state: GameplayState::Playing,
         });
 
-        let sdl = sdl3::init()?;
+        let mut platform = Platform::init()?;
 
-        let video = video::configure()
-            .window(|w| w.title("Snake").size((640, 480)))
-            .rendering(|r| r.alpha_blending())
-            .build(&sdl)?;
-
-        let events = event::EventPump::init(&sdl)?;
+        platform.register_font(FONT_CALIPER_ID, FONT_CALIPER_PATH);
 
         Ok(Self {
-            // Application + Game Boundary
             state,
-
-            // Application + World Boundary
             config,
-
-            // Application + Platform Boundary
-            sdl,
-            video,
-            events,
+            platform,
         })
     }
 
     pub fn run(&mut self) {
         let ns_frame_cap = 1_000_000_000u32 / self.config.fps as u32;
-        let mut ns_counter = HighResolutionCounter::new();
+        let mut timer = self.platform.timer();
 
         loop {
-            ns_counter.start();
+            timer.start();
 
-            self.handle_platform_events();
+            self.handle_events();
             self.update();
+            self.draw().expect("Drawing does not fail");
 
-            if let Err(error) = self.render() {
-                panic!("Encountered SDL3 Rendering error: {error}");
-            }
-
-            ns_counter.stop();
+            timer.stop();
 
             ::std::thread::sleep(std::time::Duration::new(
                 0,
-                ns_frame_cap - ns_counter.nanoseconds(),
+                ns_frame_cap - timer.nanoseconds(),
             ));
         }
     }
 }
 
-// -----------------------------
-// App :: Private Impl
-// -----------------------------
-
-impl App<'_> {
-    fn handle_platform_events(&mut self) {
-        for event in self.events.iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => {
-                    self.state = AppState::Exiting(ExitStatus {
-                        code: 0,
-                        msg: "\nBye!",
-                    })
-                }
-                _ => match self.state {
-                    AppState::Exiting(_) => {}
-                    AppState::InGame(ref mut session) => {
-                        session.handle_platform_event(&event);
-                    }
-                },
-            }
-        }
-    }
-
-    fn update(&mut self) {
-        match self.state {
-            AppState::Exiting(ref mut status) => {
-                let msg = status.msg;
-                eprintln!("{msg}");
-                exit(status.code);
-            }
-            AppState::InGame(ref mut gameplay) => {
-                gameplay.update();
-                if gameplay.state == GameplayState::Ending {
-                    self.state = AppState::Exiting(ExitStatus {
-                        code: 0,
-                        msg: "\nYou Died!",
-                    })
-                }
-            }
-        }
-    }
-
-    fn render(&mut self) -> Result<(), Error> {
-        self.video.canvas.set_draw_color(Color::BLACK);
-        self.video.canvas.clear();
-        match self.state {
-            AppState::Exiting(_) => {}
-            AppState::InGame(ref mut session) => {
-                session.render(&self.config, &mut self.video)?;
-            }
-        }
-        self.video.canvas.present();
-        Ok(())
-    }
-}
-
-/// Top-level Application configuration.
 pub struct Config {
     pub name: &'static str,
 
@@ -190,6 +93,71 @@ pub struct Config {
     pub grid_scale: u8,
 }
 
+// -----------------------------------------------------------------------------
+//                                            Application :: Processing Pipeline
+// -----------------------------------------------------------------------------
+
+impl App {
+    fn handle_events(&mut self) {
+        for event in self.platform.events() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => {
+                    self.state = Mode::Exiting(ExitStatus {
+                        code: 0,
+                        msg: "\nBye!",
+                    })
+                }
+                _ => match self.state {
+                    Mode::Exiting(_) => {}
+                    Mode::InGame(ref mut session) => {
+                        session.handle_platform_event(&event);
+                    }
+                },
+            }
+        }
+    }
+
+    fn update(&mut self) {
+        match self.state {
+            Mode::Exiting(ref mut status) => {
+                let msg = status.msg;
+                eprintln!("{msg}");
+                exit(status.code);
+            }
+            Mode::InGame(ref mut gameplay) => {
+                gameplay.update();
+                if gameplay.state == GameplayState::Ending {
+                    self.state = Mode::Exiting(ExitStatus {
+                        code: 0,
+                        msg: "\nYou Died!",
+                    })
+                }
+            }
+        }
+    }
+
+    fn draw(&mut self) -> Result<(), AnyError> {
+        let mut frame = self.platform.display_commands();
+        frame.clear();
+        match self.state {
+            Mode::Exiting(_) => {}
+            Mode::InGame(ref mut session) => {
+                session.draw(&mut frame, self.config.grid_scale)?;
+            }
+        }
+        frame.present()?;
+        Ok(())
+    }
+}
+
 // -------------------------------------------------------------
 // Application FSM
 // -------------------------------------------------------------
@@ -198,7 +166,7 @@ pub struct Config {
 // Root FSM
 // -----------------------------
 
-enum AppState {
+enum Mode {
     InGame(Gameplay),
     Exiting(ExitStatus),
 }
@@ -215,7 +183,7 @@ struct Gameplay {
 #[derive(PartialEq)]
 enum GameplayState {
     Playing,
-    Paused { icon: icon::Pause, text: text::Text },
+    Paused,
     Ending,
 }
 
@@ -244,25 +212,13 @@ impl Gameplay {
                     Event::KeyDown {
                         keycode: Some(Keycode::P),
                         ..
-                    } => {
-                        self.state = GameplayState::Paused {
-                            icon: icon::Pause::new(),
-                            text: Text::new(
-                                String::from("Paused"),
-                                text::FontId::CALIPER,
-                                (0, 0),
-                                32,
-                                text::Anchor::Center,
-                                Color::WHITE,
-                            ),
-                        }
-                    }
+                    } => self.state = GameplayState::Paused,
 
                     _ => {}
                 }
             }
 
-            GameplayState::Paused { .. } => {
+            GameplayState::Paused => {
                 if let Event::KeyDown {
                     keycode: Some(Keycode::P),
                     ..
@@ -294,42 +250,43 @@ impl Gameplay {
                     self.state = GameplayState::Ending;
                 }
             }
-            GameplayState::Paused { .. } => {}
+            GameplayState::Paused => {}
             GameplayState::Ending => {}
         }
     }
 
-    fn render(&mut self, config: &Config, video: &mut video::Video) -> Result<(), Error> {
-        let snapshot = self.game.snapshot();
+    fn draw(&mut self, frame: &mut DisplayCommands, scale: u8) -> Result<(), AnyError> {
+        let game = &mut self.game;
+        let snapshot = game.snapshot();
+        let grid = &game.grid;
 
-        video.canvas.draw_grid(config.grid_scale, &self.game.grid)?;
-        video.canvas.draw_head(config.grid_scale, snapshot.head)?;
-        video.canvas.draw_body(config.grid_scale, snapshot.body)?;
-        video.canvas.draw_apple(config.grid_scale, snapshot.apple)?;
+        draw_grid(frame, scale, &game.grid)?;
+        draw_head(frame, scale, snapshot.head)?;
+        draw_body(frame, scale, snapshot.body)?;
+        draw_apple(frame, scale, snapshot.apple)?;
 
-        if let GameplayState::Paused { icon, text } = &self.state {
-            let grid_rect = FRect::new(
-                0f32,
-                0f32,
-                config.grid_width as f32 * config.grid_scale as f32,
-                config.grid_height as f32 * config.grid_scale as f32,
-            );
+        if self.state == GameplayState::Paused {
+            draw_overlay(frame, scale, grid)?;
 
-            video.canvas.set_draw_color(Color::RGBA(0, 0, 0, 120));
-            video.canvas.fill_rect(grid_rect)?;
+            let center = Point::try_from(grid.size().scaled(scale / 2))?;
+            // let above_center = center - (0, 32).into();
+            // let below_center = center + (0, 32).into();
 
-            let window_width = (config.grid_width * config.grid_scale as u32) as i32;
-            let window_height = (config.grid_height * config.grid_scale as u32) as i32;
+            frame.draw_text(
+                FONT_CALIPER_ID,
+                24,
+                Color::WHITE,
+                "Paused",
+                center,
+                Anchor::Center,
+            )?;
 
-            let center = Point(window_width, window_height) / 2;
-            let above_center = center - (0, 32).into();
-            let below_center = center + (0, 32).into();
-
+            /*
             icon.blocks()
                 .map(|block| block.translate(below_center))
                 .try_for_each(|block| video.draw_block(&block))?;
 
-            //video.draw_text(&text.translated(above_center))?;
+            */
         }
 
         Ok(())
@@ -345,98 +302,48 @@ struct ExitStatus {
     msg: &'static str,
 }
 
-// -------------------------------------------------------------
-// Supporting Machinery
-// -------------------------------------------------------------
-
-// -----------------------------
-// Timing
-// -----------------------------
-
-struct HighResolutionCounter(u64, u64);
-
-impl HighResolutionCounter {
-    fn new() -> Self {
-        Self(0, 0)
-    }
-
-    fn start(&mut self) {
-        self.0 = sdl3::timer::performance_counter();
-    }
-
-    fn stop(&mut self) {
-        self.1 = sdl3::timer::performance_counter();
-    }
-
-    fn nanoseconds(&self) -> u32 {
-        ((1_000_000_000 * (self.1 - self.0)) / sdl3::timer::performance_frequency())
-            .try_into()
-            .expect("High resolution counter difference nanosecond-scaled fits into u32")
-    }
+fn draw_body(frame: &mut DisplayCommands, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
+    let color = Color::RGB(80, 80, 80);
+    body.iter().for_each(|cell| {
+        let rect = Rect::from(*cell).scaled(scale);
+        frame.fill_rect(rect, color).unwrap();
+    });
+    Ok(())
 }
 
-// -----------------------------
-// Rendering
-// -----------------------------
-
-trait AppCanvas {
-    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error>;
-    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error>;
-    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error>;
-    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error>;
+fn draw_head(frame: &mut DisplayCommands, scale: u8, head: Point) -> Result<(), sdl3::Error> {
+    let color = Color::RGB(80, 80, 80);
+    let rect = Rect::from(head).scaled(scale);
+    frame.fill_rect(rect, color)?;
+    Ok(())
 }
 
-impl AppCanvas for Canvas<Window> {
-    fn draw_body(&mut self, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
-        let rects: Vec<FRect> = body
-            .iter()
-            .map(|cell| {
-                FRect::new(
-                    (cell.0 * scale as i32) as f32,
-                    (cell.1 * scale as i32) as f32,
-                    scale as f32,
-                    scale as f32,
-                )
-            })
-            .collect();
-        self.set_draw_color(Color::RGB(80, 80, 80));
-        self.fill_rects(&rects)?;
-        Ok(())
-    }
+fn draw_apple(frame: &mut DisplayCommands, scale: u8, apple: Point) -> Result<(), sdl3::Error> {
+    let color = Color::RGB(180, 80, 80);
+    let rect = Rect::from(apple).scaled(scale);
+    frame.fill_rect(rect, color)?;
+    Ok(())
+}
 
-    fn draw_head(&mut self, scale: u8, head: Point) -> Result<(), sdl3::Error> {
-        let rect = FRect::new(
-            head.0 as f32 * scale as f32,
-            head.1 as f32 * scale as f32,
-            scale as f32,
-            scale as f32,
-        );
+fn draw_grid(frame: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
+    let color = Color::RGB(120, 120, 120);
+    let rect = Rect::default().scaled((
+        scale as i32 * grid.width() as i32,
+        scale as i32 * grid.height() as i32,
+    ));
+    frame.fill_rect(rect, color)?;
+    Ok(())
+}
 
-        self.set_draw_color(Color::RGB(80, 80, 80));
-        self.fill_rect(rect)?;
-        Ok(())
-    }
+fn draw_overlay(frame: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
+    let color = Color::RGBA(0, 0, 0, 120);
+    let rect = Rect::from(grid).scaled(scale);
+    frame.fill_rect(rect, color)?;
+    Ok(())
+}
 
-    fn draw_apple(&mut self, scale: u8, apple: Point) -> Result<(), sdl3::Error> {
-        let rect = FRect::new(
-            apple.0 as f32 * scale as f32,
-            apple.1 as f32 * scale as f32,
-            scale as f32,
-            scale as f32,
-        );
-        self.set_draw_color(Color::RGB(180, 80, 80));
-        self.fill_rect(rect)?;
-        Ok(())
-    }
-
-    fn draw_grid(&mut self, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
-        self.set_draw_color(Color::RGB(120, 120, 120));
-        self.fill_rect(FRect::new(
-            0f32,
-            0f32,
-            grid.width() as f32 * scale as f32,
-            grid.height() as f32 * scale as f32,
-        ))?;
-        Ok(())
+impl From<&Grid> for Rect {
+    fn from(grid: &Grid) -> Self {
+        Rect::new((0, 0), (grid.width(), grid.height()))
     }
 }
