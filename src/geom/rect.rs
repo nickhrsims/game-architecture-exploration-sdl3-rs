@@ -31,10 +31,10 @@ impl Rect {
     }
 
     pub fn scaled(&self, scale: impl Into<Scale>) -> Self {
-        Self {
-            position: self.position,
-            size: self.size.scaled(scale),
-        }
+        let scale = scale.into();
+        let position = self.position.scaled(scale);
+        let size = self.size.scaled(scale);
+        Self::new(position, size)
     }
 
     pub fn translate(&mut self, displacement: Point) {
