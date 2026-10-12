@@ -107,6 +107,15 @@ impl std::ops::Div<i32> for Point {
     }
 }
 
+impl std::ops::Neg for Point {
+    type Output = Point;
+    fn neg(self) -> Self::Output {
+        let r0 = -self.0;
+        let r1 = -self.1;
+        Point(r0, r1)
+    }
+}
+
 impl<X: Into<i32>, Y: Into<i32>> From<(X, Y)> for Point {
     fn from(value: (X, Y)) -> Self {
         let (x, y) = value;
