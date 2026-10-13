@@ -88,10 +88,45 @@ impl<T: Into<u32>> std::ops::Div<T> for Size {
     }
 }
 
+impl From<(u8, u8)> for Size {
+    fn from(value: (u8, u8)) -> Self {
+        let (w, h) = value;
+        Self(w as u32, h as u32)
+    }
+}
+
+impl From<(u16, u16)> for Size {
+    fn from(value: (u16, u16)) -> Self {
+        let (w, h) = value;
+        Self(w as u32, h as u32)
+    }
+}
+
 impl From<(u32, u32)> for Size {
     fn from(value: (u32, u32)) -> Self {
         let (w, h) = value;
         Self(w, h)
+    }
+}
+
+impl From<(i8, i8)> for Size {
+    fn from(value: (i8, i8)) -> Self {
+        let (w, h) = value;
+        Self(w as u32, h as u32)
+    }
+}
+
+impl From<(i16, i16)> for Size {
+    fn from(value: (i16, i16)) -> Self {
+        let (w, h) = value;
+        Self(w as u32, h as u32)
+    }
+}
+
+impl From<(i32, i32)> for Size {
+    fn from(value: (i32, i32)) -> Self {
+        let (w, h) = value;
+        Self(w as u32, h as u32)
     }
 }
 
