@@ -5,6 +5,7 @@ pub mod text;
 pub mod timer;
 
 pub use commands::DisplayCommands;
+pub use display::Color;
 pub use display::DisplaySystem;
 pub use event::EventPump;
 pub use text::FontId;
@@ -15,9 +16,9 @@ pub use timer::HighResolutionTimer;
 pub struct Platform {
     #[allow(unused)]
     sdl_context: sdl3::Sdl,
-    display_system: DisplaySystem,
-    event_pump: EventPump,
-    text_system: TextSystem,
+    pub display_system: DisplaySystem,
+    pub event_pump: EventPump,
+    pub text_system: TextSystem,
 }
 
 impl Platform {

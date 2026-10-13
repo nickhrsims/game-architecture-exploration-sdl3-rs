@@ -16,9 +16,11 @@ use std::process::exit;
 
 use crate::game;
 
-use crate::geom::{Anchor, Grid, Point, Rect, Size};
+use crate::geom::{Grid, Point, Rect, Size};
+use crate::platform::Platform;
 use crate::platform::text::FontId;
-use crate::platform::{DisplayCommands, Platform};
+
+use crate::display::{Block, DisplayCommands, Text};
 
 // -----------------------------------------------------------------------------
 //                                                                  Type Aliases
@@ -145,7 +147,10 @@ impl App {
     }
 
     fn draw(&mut self) -> Result<(), AnyError> {
-        let mut frame = self.platform.display_commands();
+        let mut frame = DisplayCommands::new(
+            &mut self.platform.display_system,
+            &mut self.platform.text_system,
+        );
         frame.clear();
         match self.state {
             Mode::Exiting(_) => {}
@@ -272,14 +277,14 @@ impl Gameplay {
             // let above_center = center - (0, 32).into();
             // let below_center = center + (0, 32).into();
 
-            frame.draw_text(
-                FONT_CALIPER_ID,
-                24,
-                Color::WHITE,
-                "Paused",
-                center,
-                Anchor::Center,
-            )?;
+            let text = Text::builder("P A U S E D")
+                .font(FONT_CALIPER_ID)
+                .pt(24)
+                .color(Color::WHITE)
+                .position(center)
+                .build();
+
+            frame.text(&text)?;
 
             /*
             icon.blocks()
@@ -302,44 +307,65 @@ struct ExitStatus {
     msg: &'static str,
 }
 
-fn draw_body(frame: &mut DisplayCommands, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
-    let color = Color::RGB(80, 80, 80);
+fn draw_body(draw: &mut DisplayCommands, scale: u8, body: &[Point]) -> Result<(), sdl3::Error> {
     body.iter().for_each(|cell| {
-        let rect = Rect::from(*cell).scaled(scale);
-        frame.fill_rect(rect, color).unwrap();
+        draw.block(
+            &Block::builder()
+                .position(*cell)
+                .scaled(scale)
+                .rgb(80, 80, 80)
+                .solid()
+                .build(),
+        )
+        .unwrap();
     });
     Ok(())
 }
 
-fn draw_head(frame: &mut DisplayCommands, scale: u8, head: Point) -> Result<(), sdl3::Error> {
-    let color = Color::RGB(80, 80, 80);
-    let rect = Rect::from(head).scaled(scale);
-    frame.fill_rect(rect, color)?;
-    Ok(())
+fn draw_head(draw: &mut DisplayCommands, scale: u8, head: Point) -> Result<(), sdl3::Error> {
+    draw.block(
+        &Block::builder()
+            .position(head)
+            .scaled(scale)
+            .rgb(80, 80, 80)
+            .solid()
+            .build(),
+    )
 }
 
-fn draw_apple(frame: &mut DisplayCommands, scale: u8, apple: Point) -> Result<(), sdl3::Error> {
-    let color = Color::RGB(180, 80, 80);
-    let rect = Rect::from(apple).scaled(scale);
-    frame.fill_rect(rect, color)?;
-    Ok(())
+fn draw_apple(draw: &mut DisplayCommands, scale: u8, apple: Point) -> Result<(), sdl3::Error> {
+    draw.block(
+        &Block::builder()
+            .position(apple)
+            .scaled(scale)
+            .rgb(180, 80, 80)
+            .solid()
+            .build(),
+    )
 }
 
-fn draw_grid(frame: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
-    let color = Color::RGB(120, 120, 120);
-    let rect = Rect::default().scaled((
-        scale as i32 * grid.width() as i32,
-        scale as i32 * grid.height() as i32,
-    ));
-    frame.fill_rect(rect, color)?;
-    Ok(())
+fn draw_grid(draw: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
+    draw.block(
+        &Block::builder()
+            .rgb(120, 120, 120)
+            .size((
+                scale as i32 * grid.width() as i32,
+                scale as i32 * grid.height() as i32,
+            ))
+            .build(),
+    )
 }
 
-fn draw_overlay(frame: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
-    let color = Color::RGBA(0, 0, 0, 120);
-    let rect = Rect::from(grid).scaled(scale);
-    frame.fill_rect(rect, color)?;
-    Ok(())
+fn draw_overlay(draw: &mut DisplayCommands, scale: u8, grid: &Grid) -> Result<(), sdl3::Error> {
+    draw.block(
+        &Block::builder()
+            .rgba(0, 0, 0, 120)
+            .size((
+                scale as i32 * grid.width() as i32,
+                scale as i32 * grid.height() as i32,
+            ))
+            .build(),
+    )
 }
 
 impl From<&Grid> for Rect {
