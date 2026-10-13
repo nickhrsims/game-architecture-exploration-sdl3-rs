@@ -42,6 +42,7 @@ impl Rect {
     }
 
     pub fn scale(&mut self, scale: Scale) {
+        self.position.scale(scale);
         self.size.scale(scale);
     }
 }
